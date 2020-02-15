@@ -116,7 +116,7 @@ RUN apt-get install -y mysql-server= "${MYSQL_VERSION}" \
 
 ## 3-7 RUN vs CMD vs ENTRYPOINT
 
-### 命令分Shell格式和Exec格式
+### 命令分Shell格式和Exec格式
 
 > 区别在于后者有中括号，中括号内是一个个的字符串，而且对环境变量支持不好
 

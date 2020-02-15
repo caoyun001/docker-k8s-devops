@@ -1,5 +1,31 @@
 # Docker之间的网络
 
+## 4-1 本章概述和实验环境介绍
++ 单机通信
+  + Bridge NetWork
+  + Host NetWork
+  + None NetWork
++ 多机通信
+  + Overlay NetWork
+
+## 4-2 网络基础
+
+### 网络的分层
+![网络分层](images/网络分层.png)
+
+### 共有IP和私有IP
+![公有IP和私有IP](images/公有IP和私有IP.png)
+
+### 内网私有地址访问公网的方式NAT
+![NAT](images/NAT.png)
+
+### ping和telenet
+
++ ping:验证IP的可达性
++ telnet:验证服务的可用性，`telnet ip port`返回connected表示服务可用，返回refused表示服务挂了
+  > ![telnet验证服务可达性](images/telnet验证服务可达性.png)
+
+
 ## 4-3 Linux命名空间
 
 ### Docker所用的基础Linux网络namespace 
