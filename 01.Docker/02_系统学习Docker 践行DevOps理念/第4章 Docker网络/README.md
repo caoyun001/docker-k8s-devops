@@ -41,19 +41,200 @@
 + 查看当前容器的内部网络：`docker exec -it 容器id ip a`
 + 查看当前容器的内部链路情况：`docker exec -it 容器id ip link`
 
-### 容器连接的原理
+### 查看不同容器的网络和命名空间
+```powershell
+[root@localhost ~]# docker run -d --name test1 busybox /bin/sh -c "while true;do sleep 3600;done"
+[root@localhost ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
+6025307db564        busybox             "/bin/sh -c 'while..."   54 seconds ago      Up 53 seconds                           test1
+[root@localhost ~]# docker exec -it 6025307db564 /bin/sh
+/ # ip a
+....
+回显即为命名空间
+....
+/ # exit
+[root@localhost ~]# ip a
+......
+主机的命名空间
+......
+[root@localhost ~]# docker run -d --name test2 busybox /bin/sh -c "while true;do sleep 3600;done"
+[root@localhost ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
+2da2eb5316cb        busybox             "/bin/sh -c 'while..."   46 seconds ago      Up 45 seconds                           test2
+6025307db564        busybox             "/bin/sh -c 'while..."   5 minutes ago       Up 5 minutes                            test1
+[root@localhost ~]# docker exec 6025307db564 ip a
+......
+返回地容器test2的命名空间
+......
+[root@localhost ~]# docker exec -it 6025307db564 /bin/sh
+/ # ping 172.17.0.1
+// 下面的回显表明可以在容器test2中ping通test1
+PING 172.17.0.1 (172.17.0.1): 56 data bytes
+64 bytes from 172.17.0.1: seq=0 ttl=64 time=0.049 ms
+64 bytes from 172.17.0.1: seq=1 ttl=64 time=0.037 ms
+64 bytes from 172.17.0.1: seq=2 ttl=64 time=0.035 ms
+```
 
-```shell
-Linux network space
-ip netns list
-ip netns exec test1 ip a
-ip netns exec test1 ip link
-ip link add veth-test1 type veth peer name veth-test2
-ip netns exec test1 ip addr add 192.168.1.1/24 dev veth-test1
+### 命名空间查看与操作
+
++ `ip a` 表示ip address (show)，相当于显示IP地址信息，偏向于上层。
++ `ip link`表示 `ip link(show)`， 表示链路层的信息，更底层，偏向于物理层，如你可以设置网卡的up down，那么就是 ip link set down ethX, ip link set up ethX
+
+```powershell
+# Linux network namespace(简称ns,netns就是network namespace的意思)
+ip netns list # 查看命名空间列表
+ip netns add test1 # 添加指定名称的命名空间
+ip netns delete test1 # 删除指定名称的命名空间
+ip netns exec test1 ip a # 查看命名空间test1内的IP地址信息
+ip netns exec test1 ip link # 查看命名空间test1的所有链路信息
+ip link add veth-test1 type veth peer name veth-test2 # 设置两个互连的veth网络，为后面test1和test2网络连接做准备
+ip netns exec test1 ip addr add 192.168.1.1/24 dev veth-test1 # 给veth端口绑定ip，然后才能和其他的veth端口互连
 ip netns exec test2 ip link set dev veth-test2 up
 ```
 
+### 命名空间实战
+```powershell
+[root@localhost ~]# ip netns list
+[root@localhost ~]# ip netns add test1
+[root@localhost ~]# ip netns list
+test1
+[root@localhost ~]# ip netns add test2
+[root@localhost ~]# ip netns list
+test2
+test1
+[root@localhost ~]# ip netns exec test1 ip a
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN qlen 1 # DOWN表示当前端口没有用起来
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+[root@localhost ~]# ip link // 查看主机的链路信息
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DEFAULT qlen 1000
+    link/ether 08:00:27:54:8e:3b brd ff:ff:ff:ff:ff:ff
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT
+    link/ether 02:42:7b:c9:a0:59 brd ff:ff:ff:ff:ff:ff
+[root@localhost ~]# ip netns exec test1 ip link // 查看自定义命令空间的链路信息
+1: lo（链路名称，重点关注，下面有用）: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+[root@localhost ~]# ip netns exec test1 ip link set dev lo up // 把lo端口up起来，会成为UnKnown，因为想up必须是两个端口相连
+[root@localhost ~]# ip netns exec test1 ip link
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN（从Down变成UnKnown了，要想变成up必须是两个端口相连） mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+```
+需要用两个Veth端口把两个命名空间连接起来，这样两个命名空间的链路才能都up起来，否则就会是Down或UnKnown。如下图
 ![Linux网络命名空间连接](images/Linux网络命名空间连接.jpg)
+
+接上面继续执行命令
+```powershell
+[root@localhost ~]# ip link add veth-test1 type veth peer name veth-test2 # 现在本地创建两个veth链路，为连接命名空间test1和test2做准备
+[root@localhost ~]# ip link # 查看此时主机的链路情况，可以看到刚加的veth-test1和veth-test2
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DEFAULT qlen 1000
+    link/ether 08:00:27:54:8e:3b brd ff:ff:ff:ff:ff:ff
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT
+    link/ether 02:42:7b:c9:a0:59 brd ff:ff:ff:ff:ff:ff
+12: veth-test2@veth-test1（新加的veth网络）: <BROADCAST,MULTICAST,M-DOWN> mtu 1500 qdisc noop state DOWN mode DEFAULT qlen 1000
+    link/ether 22:97:d2:6f:61:13 brd ff:ff:ff:ff:ff:ff
+13: veth-test1@veth-test2（新加的veth网络）: <BROADCAST,MULTICAST,M-DOWN> mtu 1500 qdisc noop state DOWN mode DEFAULT qlen 1000
+    link/ether 92:08:f0:a6:24:47 brd ff:ff:ff:ff:ff:ff
+[root@localhost ~]# ip netns exec test1 ip link // 可以看到此时test1内的链路情况还没变，下面把veth-test1添加到命名空间test1后就会变化了
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+[root@localhost ~]# ip link set veth-test1 netns test1 //把veth-test1添加到命名空间test1
+[root@localhost ~]# ip netns exec test1 ip link // 再看命名空间test1内的链路就变了
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+13: veth-test1@if12: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT qlen 1000
+    link/ether 92:08:f0:a6:24:47 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+[root@localhost ~]# ip link // 起初创建于本机网络的veth-test1被添加到test1后就不存在与主机上了
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DEFAULT qlen 1000
+    link/ether 08:00:27:54:8e:3b brd ff:ff:ff:ff:ff:ff
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT
+    link/ether 02:42:7b:c9:a0:59 brd ff:ff:ff:ff:ff:ff
+12: veth-test2@if13（只有veth-test2了，veth-test1已经被添加到命名空间test1了）: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT qlen 1000
+    link/ether 22:97:d2:6f:61:13 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+[root@localhost ~]# ip netns exec test2 ip link // 可以看到此时test2内的链路情况还没变，下面把veth-test2添加到命名空间test2后就会变化了
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+[root@localhost ~]# ip link set veth-test2 netns test2 //把veth-test2添加到命名空间test2
+[root@localhost ~]# ip netns exec test2 ip link // 再看命名空间test2内的链路就变了
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+12: veth-test2@if13: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT qlen 1000
+    link/ether 22:97:d2:6f:61:13 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+[root@localhost ~]# ip link // 主机网络里veth-test1和veth-test2都不见了
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DEFAULT qlen 1000
+    link/ether 08:00:27:54:8e:3b brd ff:ff:ff:ff:ff:ff
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT
+    link/ether 02:42:7b:c9:a0:59 brd ff:ff:ff:ff:ff:ff
+[root@localhost ~]# ip netns exec test1 ip addr add 192.168.1.1/24 dev veth-test1 // 给veth端口绑定ip，然后才能和其他的veth端口互连
+[root@localhost ~]# ip netns exec test2 ip addr add 192.168.1.2/24 dev veth-test2 // 给veth端口绑定ip，然后才能和其他的veth端口互连
+[root@localhost ~]# ip netns exec test1 ip link // 绑定了ip，对应的veth端口还没UP起来，仍然是Down地
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+13: veth-test1@if12（veth端口）: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN（仍然是Down地） mode DEFAULT qlen 1000
+    link/ether 92:08:f0:a6:24:47 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+[root@localhost ~]# ip netns exec test2 ip link // 绑定了ip，对应的veth端口还没UP起来，仍然是Down地
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+12: veth-test2@if13（veth端口）: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN（仍然是Down地） mode DEFAULT qlen 1000
+    link/ether 22:97:d2:6f:61:13 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+[root@localhost ~]# ip netns exec test1 ip link set dev veth-test1 up // veth端口UP起来了
+[root@localhost ~]# ip netns exec test2 ip link set dev veth-test2 up // veth端口UP起来了
+[root@localhost ~]# ip netns exec test1 ip link // 确认链路信息
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+13: veth-test1@if12（veth端口）: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP（veth端口UP起来了） mode DEFAULT qlen 1000
+    link/ether 92:08:f0:a6:24:47 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+[root@localhost ~]# ip netns exec test2 ip link // 确认链路信息
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+12: veth-test2@if13（veth端口）: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP（veth端口UP起来了） mode DEFAULT qlen 1000
+    link/ether 22:97:d2:6f:61:13 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+[root@localhost ~]# ip netns exec test1 ip a // 查看命名空间1，可以看到我们自己创建的veth-test1已经分配好ip 192.168.1.1/24了
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+13: veth-test1@if12（veth端口）: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP qlen 1000
+    link/ether 92:08:f0:a6:24:47 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet 192.168.1.1/24（已经分配好ip了） scope global veth-test1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::9008:f0ff:fea6:2447/64 scope link
+       valid_lft forever preferred_lft forever
+[root@localhost ~]# ip netns exec test2 ip a
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+12: veth-test2@if13（veth端口）: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP qlen 1000
+    link/ether 22:97:d2:6f:61:13 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 192.168.1.2/24（已经分配好ip了） scope global veth-test2
+       valid_lft forever preferred_lft forever
+    inet6 fe80::2097:d2ff:fe6f:6113/64 scope link
+       valid_lft forever preferred_lft forever
+[root@localhost ~]# ip netns exec test1 ping 192.168.1.2 // 在命名空间test1中ping命名空间test2的veth-test2的ip地址192.168.1.2能ping通，表明我们把两个命名空间连接起来了，可以理解为把两个互相隔离的容器联通了(因为每个容器实际就是用不同的命名空间区分和隔离的)~~
+PING 192.168.1.2 (192.168.1.2) 56(84) bytes of data.
+64 bytes from 192.168.1.2: icmp_seq=1 ttl=64 time=0.033 ms
+64 bytes from 192.168.1.2: icmp_seq=2 ttl=64 time=0.023 ms
+64 bytes from 192.168.1.2: icmp_seq=3 ttl=64 time=0.023 ms
+64 bytes from 192.168.1.2: icmp_seq=4 ttl=64 time=0.023 ms
+64 bytes from 192.168.1.2: icmp_seq=5 ttl=64 time=0.024 ms
+[root@localhost ~]# ip netns exec test2 ping 192.168.1.1 // 同上，在命名空间test2中ping命名空间test1的veth-test1的ip地址192.168.1.1也是能ping通，两个命名空间是双向联通的
+PING 192.168.1.1 (192.168.1.1) 56(84) bytes of data.
+64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=0.022 ms
+64 bytes from 192.168.1.1: icmp_seq=2 ttl=64 time=0.041 ms
+64 bytes from 192.168.1.1: icmp_seq=3 ttl=64 time=0.024 ms
+64 bytes from 192.168.1.1: icmp_seq=4 ttl=64 time=0.024 ms
+```
+
+Linux的命名空间以及Veth的讲解的很好的博客[Linux 虚拟网络设备 veth-pair 详解，看这一篇就够了](https://www.cnblogs.com/bakari/p/10613710.html)
+
+重要知识点：Veth端口必须成对配置并连接起来才能是UP的
 
 ## 4-4 Docker bridge0详解
 
