@@ -678,6 +678,7 @@ docker0         8000.02421859fa21       no              veth3466bf5
 > 本节的例子图示如下
 
 ![本节的例子图示如下](images/同一个主机多容器联合部署实战.png)
+
 ## 4-9 多机容器间的通信：Overlay和Underlay的通俗解释
 
 两个不同公网ip的机器上的容器直接通信是不行地，但是可以通过在主机socket包中携带容器的数据包，到目标机器上再解包，从而实现不同机器上的容器通信。这个功能相当于一个隧道，官方名称VXLAN
@@ -689,6 +690,7 @@ VALAN原理图如下：
 ![VXLAN原理](images/VXLAN原理.jpg)
 
 ## 4-10 多机通信实战
+> 参考博客：https://blog.csdn.net/huangjun0210/article/details/86083901
 
 + 1、分别在两个节点上安装etcd cluster, 检查ectd的健康状态
 + 2、分别在两个节点上重启docker服务，重启的时候参数里配置cluster分布式共享存储，重启之后就有共享存储了

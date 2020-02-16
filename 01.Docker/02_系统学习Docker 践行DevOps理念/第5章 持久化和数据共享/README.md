@@ -9,8 +9,8 @@
 
 ## Volume的类型
 
-+ 1.受管理的data Volume,由docker后台自动创建
-+ 2.绑定挂载的Volume，具体挂载位置可以由用户指定
++ 1.受管理的`Data Volume`,由docker后台自动创建
++ 2.`-v`绑定挂载的Volume，具体挂载位置可以由用户指定
 
 ## Volume操作
 
@@ -21,7 +21,7 @@
 
 ## 持久化方式1 ： -v 挂载地址来声明挂载到的本地路径
 
-+ 1.创建MySQL的镜像：`docker run -d -v mysql:/var/lib/mysql --name mysql1 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql`
++ 1.创建MySQL的镜像：`docker run -d -v mysql:/var/lib/mysql --name mysql1 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql`,-v后面的`mysql`是已经存在的Volume(自己创建或者启动其他容器时自动创建的)
 + 2.强制删除正在执行地mysql1:`docker rm -f mysql1`
 + 3.创建mysql2仍然可以直接使用mysql1的volume，证明了volume的持久性,可以自己在mysql1的时候添加个数据库试试，看看在mysql2中是否仍然存在：`docker run -d -v mysql:/var/lib/mysql --name mysql2 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql`
 
