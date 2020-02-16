@@ -645,18 +645,24 @@ br-cd3a13dd8dcb 8000.0242cc627165       no              veth2571535
                                                         veth8ea1cfd
                                                         vethf25be17
 docker0         8000.02421859fa21       no              veth3466bf5
+                                                        vethd564c81
 ```
 
 ## 4-6 端口映射
 
 `docker run --name web-server -d -p 80:80 nginx`
 
+原理如下:
+
+![端口映射的原理](images/端口映射的原理.png)
+
+
 ## 4-7 容器网络之host和none
 
 > host方式表示容器和所在主机的网络完全一致
 
-+ `docker run --network host xxx`:主机网络启动
-+ `docker run --network none xxx`:主机网络启动
++ `docker run --network host xxx`:主机网络启动，没有独立的命名空间namespace，和主机共享namespace，访问其他的网络、端口等完全和宿主机一样
++ `docker run --network none xxx`:孤立启动容器，不和任何网络连接，只能用`docker exec -it`进入
 
 ## 4-8 多容器复杂应用的部署
 
