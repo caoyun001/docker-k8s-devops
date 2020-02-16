@@ -671,7 +671,13 @@ docker0         8000.02421859fa21       no              veth3466bf5
 + 先启动redis服务器：`docker run -d --name redis redis`
 + 切入到flask-redis-demo并执行如下命令：`docker build -t waterknife/flask-redis-demo .`
 + 启动上一步制作的镜像：`docker run -d -p 5000:5000 --link redis --name flask-redis -e REDIS_HOST=redis waterknife/flask-redis-demo`
+  > `--link redis`后就可以在`waterknife/flask-redis-demo`镜像启动的容器里用redis作为主机名访问第一步启动的redis镜像了，这里的`REDIS_HOST=redis`正是指定redis作为HOST
++ 然后访问虚拟机ip:5000就可以看到redis的计数了
+  > ![redis计数](images/redis计数.png)
 
+> 本节的例子图示如下
+
+![本节的例子图示如下](images/同一个主机多容器联合部署实战.png)
 ## 4-9 多机容器间的通信：Overlay和Underlay的通俗解释
 
 两个不同公网ip的机器上的容器直接通信是不行地，但是可以通过在主机socket包中携带容器的数据包，到目标机器上再解包，从而实现不同机器上的容器通信。这个功能相当于一个隧道，官方名称VXLAN
