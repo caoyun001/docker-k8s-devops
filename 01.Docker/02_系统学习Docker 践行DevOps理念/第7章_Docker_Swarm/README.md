@@ -89,5 +89,45 @@ w3cn8o04naq9  demo.4  busybox:latest  worker1  Running        Running 10 seconds
 y6b62xi6w84b  demo.5  busybox:latest  worker2  Running        Running 10 seconds ago
 [root@manager ~]# docker service rm demo // 删除demo服务
 demo
-
 ```
+
+## 7.4 在swarm集群里通过service部署wordpress
+### 1.创建overlay网络
+```powershell
+[root@manager ~]# docker network create -d overlay demo
+2vjs0y1n2tqvuuiiohi3pe9tz
+[root@manager ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+[root@manager ~]# docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+1167462d60b2        bridge              bridge              local
+2vjs0y1n2tqv        demo                overlay             swarm
+5a5b4db8db19        docker_gwbridge     bridge              local
+c27645bea545        host                host                local
+ltncyma2v0e7        ingress             overlay             swarm
+cd3a13dd8dcb        mybridge            bridge              local
+fcab1d25df11        none                null                local
+```
+### 2.启动mysql
+```powershell
+[root@manager ~]# docker service create --name mysql --env MYSQL_ROOT_PASSWORD=root --env MYSQL_DATABASE=wordpress --network demo --mount type=volume,source=mysql-data,destination=/var/lib/mysql mysql:5.7.15
+3uvj3yhqmzcx2n9avva3yqz3h
+[root@manager ~]# docker service ps mysql
+ID            NAME     IMAGE         NODE     DESIRED STATE  CURRENT STATE             ERROR  PORTS
+lfpvzp38jkdi  mysql.1  mysql:5.7.15  manager  Running        Running 11 seconds ago
+```
+### 3.启动wordpress
+```powershell
+[root@manager ~]# docker service create --name wordpress -p 80:80 --env WORDPRESS_DB_PASSWORD=root --env WORDPRESS_DB_HOST=mysql --network demo wordpress
+yus2hr15jhpjcnjpealew8bqz
+[root@manager ~]# docker service ps wordpress
+ID            NAME         IMAGE             NODE     DESIRED STATE  CURRENT STATE            ERROR  PORTS
+aksbn70gzpos  wordpress.1  wordpress:latest  worker1  Running        Preparing 9 seconds ago
+```
+
+### 访问work1的ip192.168.100.117，可以看到wordpress已经正式可用了
+![wordpress正式可用了](images/wordpress正式可用了.png)
+![wordpress正式可用了2](images/wordpress正式可用了2.png)
+
+### 注意点
+docker swarm在manager节点创建了overlay的network之后，另外的worker主机不会立即创建该网络，而是等到需要的时候才会创建。比如本例当worker1的Wordpress需要使用manager上的mysql时候，worker1就会自动创建该overlay网络了。之前第三方etcd所实现的功能就由docker swarm代替。
