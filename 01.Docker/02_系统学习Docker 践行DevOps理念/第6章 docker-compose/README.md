@@ -22,7 +22,7 @@
 
 + **Services**:一个service代表一个container.可以从dockerhub的image来创建，或者从本地的Dockerfile build出来的Image来创建.还可以单独制定network和volume
 + **Networks**:桥接、网络等
-+ **Volumes**:路径挂载
++ **Volumes**:数据卷和路径挂载
 
 例子如下：
 
