@@ -10,6 +10,13 @@
 
 ![Master节点详解](images/Master节点详解.jpg)
 
++ **APIServer**：APIServer组件负责响应用户的管理请求、进行指挥协调工作
++ **scheduler**：scheduler组件是将待调度的pod按照一定的调度算法绑定到合适的工作节点上
++ **controller manager**：是一组控制器的合集，负责控制控制管理对应的资源，如副本（replication）和工作节点（node）等
++ **etcd**：etcd负责保存Kubernetes Cluster的配置信息和各种资源的状态信息。当数据发生变化时，etcd会快速地通知Kubernetes相关组件。
++ **kubelet**：管理维护pod运行的agent
++ **kube-proxy**：将service的流量转发到对应endpoint
++ **flannel网络**：维持各个节点上pod之间的通信。
 ### 9.1.3 Node节点详解
 
 Pod:具有相同namespace的一组容器的组合，一般是一组功能依赖的容器
