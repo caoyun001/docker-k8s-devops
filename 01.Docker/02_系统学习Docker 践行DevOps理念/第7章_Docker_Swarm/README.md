@@ -282,3 +282,57 @@ I'm 928c4a25aa6e
 ![IngreeNetwork的数据包走向](images/IngressNetwork的数据包走向.png)
 
 ## 7.6 Docker Stack部署wordpress
+> Docker Compose命令只支持单机集群（只有1台服务器）, Docker Stack命令既支持单机集群又支持多机集群，后者可以看做前者的集群版本
+> docker-compose的v3版本新增了deploy字段专门用于使用swarm(即Docker Stack)部署多机器应用
+
+更多的docker-compose参数参考[docker-compose编排参数详解](https://www.cnblogs.com/wutao666/p/11332186.html)，当前目录页放了对应的PDF版本
+
+```yaml
+version: '3'
+
+services:
+
+  web:
+    image: wordpress
+    ports:
+      - 8080:80
+    environment:
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_PASSWORD: root
+    networks:
+      - my-network
+    depends_on:
+      - mysql
+    deploy: # swarm的部署参数
+      mode: replicated # global表示全局就一个容器;replicated表示支持水平扩展
+      replicas: 3 # 服务水平扩展的实例个数
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+
+  mysql:
+    image: mysql:5.7.15
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - my-network
+    deploy:
+      mode: global # 这个服务就一个实例容器，即全局唯一
+      placement:
+        constraints: # 部署时的一些限制条件
+          - node.role == manager # 只在manager节点上部署
+
+volumes:
+  mysql-data:
+
+networks:
+  my-network:
+    driver: overlay
+```

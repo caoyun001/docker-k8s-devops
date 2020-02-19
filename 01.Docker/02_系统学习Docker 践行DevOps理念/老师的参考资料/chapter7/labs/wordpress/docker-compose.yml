@@ -25,7 +25,7 @@ services:
         delay: 10s
 
   mysql:
-    image: mysql:5.7
+    image: mysql:5.7.15
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: wordpress
