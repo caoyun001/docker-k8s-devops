@@ -334,5 +334,16 @@ volumes:
 
 networks:
   my-network:
-    driver: overlay
+    driver: overlay # 跨主机部署必须使用overlay网络
+```
+
+建立好上面的docker stack编排文件后，就可以使用docker stack命令直接启动跨主机的多容器部署了
+在docker swarm集群模式下，使用docker-compose文件去管理服务。
+
+使用的命令是`docker stack deploy xxxx --compose-file=docker-compose.yml`
+
+docker stack创建时不能在compose文件中直接build image，而要从本地已有或者docker hub获取。
+
+```powershell
+[root@manager ~]# docker stack deploy wordpress --compose-file=docker-compose.yml
 ```
