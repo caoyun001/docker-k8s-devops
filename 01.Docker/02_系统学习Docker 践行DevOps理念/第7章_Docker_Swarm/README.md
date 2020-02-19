@@ -347,3 +347,21 @@ docker stack创建时不能在compose文件中直接build image，而要从本�
 ```powershell
 [root@manager ~]# docker stack deploy wordpress --compose-file=docker-compose.yml
 ```
+
+## 7.9 Docker Secret管理和使用
+> 用于管理docker-compose.yaml里面诸如密码姓名手机号等机密信息
+
+![DockerSecret加密和解密以及使用的原理](images/DockerSecret加密和解密以及使用的原理.png)
+
+![Secret使用](images/Secret使用.png)
+
++ 创建secret（保存在manager节点的分布式存储里）:`docker secret pw-name pw-file`
++ `echo 'password' | docker secret create pw-name -`
++ 列出所有secret：`docker secret ls`
++ 创建services使用secret: `docker service create --name secret_test --secret secret-name image-name`
++ 进入services对应的容器，在/run/secrets目录下可以找到传入的secret
+
+## 7.10 Docker Secret在Stack中的使用
+## 7.11 Service更新
++ 1、针对service做一个scale： `docker service scale web=2`
++ 2、docker service update 命令进行更新：`docker service update --image image-name service-name`
