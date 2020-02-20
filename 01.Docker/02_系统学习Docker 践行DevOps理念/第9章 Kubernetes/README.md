@@ -66,12 +66,44 @@ kubectl get pod
 + `minicube version`可以查看版本号
 + `minikube start`:启动minikube
 + `minikube ssh`:连接minikube虚拟机(运行在virtulbox中)
++ `minikube dashboard`:查看k8s的dashboard
 
 ### kubectl使用
 + `kubectl config`:查看k8s节点配置
 + `kubectl config view`:查看节点配置
 + `kubectl config get-contexts`:获取上下文信息
 + `kubectl cluster-info`:获取集群节点信息
+
+```shell
+➜  /Users/liangshanguang/Downloads   kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: /Users/liangshanguang/.minikube/ca.crt
+    server: https://192.168.99.100:8443
+  name: minikube
+contexts:
+- context:
+    cluster: minikube
+    user: minikube
+  name: minikube
+current-context: minikube
+kind: Config
+preferences: {}
+users:
+- name: minikube
+  user:
+    client-certificate: /Users/liangshanguang/.minikube/client.crt
+    client-key: /Users/liangshanguang/.minikube/client.key
+➜  /Users/liangshanguang/Downloads   kubectl config get-contexts
+CURRENT   NAME       CLUSTER    AUTHINFO   NAMESPACE
+*         minikube   minikube   minikube   
+➜  /Users/liangshanguang/Downloads   kubectl cluster-info       
+Kubernetes master is running at https://192.168.99.100:8443
+KubeDNS is running at https://192.168.99.100:8443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
 
 ## 9.2 Mac上的Minikube安装
 ### 安装Kubectl
