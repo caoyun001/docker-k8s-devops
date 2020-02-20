@@ -68,6 +68,31 @@ kubectl get pod
 + `minikube ssh`:连接minikube虚拟机(运行在virtulbox中)
 + `minikube dashboard`:查看k8s的dashboard
 
+```shell
+➜  /Users/liangshanguang/Downloads   minikube ssh
+                         _             _            
+            _         _ ( )           ( )           
+  ___ ___  (_)  ___  (_)| |/')  _   _ | |_      __  
+/' _ ` _ `\| |/' _ `\| || , <  ( ) ( )| '_`\  /'__`\
+| ( ) ( ) || || ( ) || || |\`\ | (_) || |_) )(  ___/
+(_) (_) (_)(_)(_) (_)(_)(_) (_)`\___/'(_,__/'`\____)
+$ 
+$ 
+$ 
+$ exit
+logout
+$ ➜  /Users/liangshanguang/Downloads   minikube version
+minikube version: v1.4.0
+commit: b4e86486b6f529c2de808260556caa75ec6330cf
+➜  /Users/liangshanguang/Downloads   minikube dashboard
+🔌  Enabling dashboard ...
+🤔  Verifying dashboard health ...
+🚀  Launching proxy ...
+🤔  Verifying proxy health ...
+🎉  Opening http://127.0.0.1:53162/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/ in your default browser...
+```
+![minikube启动的k8s的dashboard](images/minikube启动的k8s的dashboard.png)
+
 ### kubectl使用
 + `kubectl config`:查看k8s节点配置
 + `kubectl config view`:查看节点配置
