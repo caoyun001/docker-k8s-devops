@@ -6,3 +6,4 @@
 *.class
 .classpath
 .vscode/
+target/
