@@ -31,7 +31,7 @@
 ## 9.2 Linux上Minikube快速搭建K8S单节点环境
 
 ### 安装kubectl
-> ![官网教程](https://kubernetes.io/docs/tasks/tools/install-kubectl/)，如果下载不下来可以在百度网盘的`2.软件/kubectl`里面找，下载下来后放到linux上，并在存放目录执行如下命令
+> [官网教程](https://kubernetes.io/docs/tasks/tools/install-kubectl/)，如果下载不下来可以在百度网盘的`2.软件/kubectl`里面找，下载下来后放到linux上，并在存放目录执行如下命令
 ```shell
 cp kubectl /usr/local/bin/
 chmod +x /usr/local/bin/kubectl
@@ -188,7 +188,7 @@ commit: b4e86486b6f529c2de808260556caa75ec6330cf
 
 ## 9.3 K8S最小调度单元Pod
 
-> Pod:具有相同namespace的一组容器的组合，一般是一组功能依赖的容器，Pod的图示如下，
+> Pod:具有相同namespace的一组容器的组合，一般是一组功能依赖的容器.k8s里不会针对单独的容器进行操作，只会针对pod进行操作。Pod的图示如下，
 
 ![Pod图示](images/Pod图示.jpg)
 
@@ -201,6 +201,15 @@ kubectl exec -it nginx sh # 默认连接第一个容器，可以使用 -c 指定
 kubectl describe pods nginx # 查看pods详情
 kubectl port-forward nginx 8080（本地端口）:80（容器中端口）#  端口转发 ，临时 退出后失效
 ```
+
+### minikube中直接使用国内的源下载镜像
+
+> 在镜像名前加上`hub.c.163.com/library`即可
+
+```shell
+docker pull hub.c.163.com/library/nginx
+```
+
 
 ## 9.4 ReplicaSet和ReplicationController
 

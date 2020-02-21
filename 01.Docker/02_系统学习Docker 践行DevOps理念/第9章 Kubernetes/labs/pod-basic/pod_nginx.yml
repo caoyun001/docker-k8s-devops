@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    # 使用国内的网易的源只需要在镜像名前加hub.c.163.com/library
+    image: hub.c.163.com/library/nginx
+    ports:
+    - containerPort: 80
