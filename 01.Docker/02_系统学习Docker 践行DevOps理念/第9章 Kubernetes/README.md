@@ -387,59 +387,63 @@ Handling connection for 8080
 docker pull hub.c.163.com/library/nginx
 ```
 
-## 9.4 ReplicaSet和ReplicationController
+## 9.4 ReplicationController和ReplicaSet
 
-Kubernetes Replication Controller：
-ReplicationController（简称RC）是确保用户定义的Pod副本数保持不变。
-在用户定义范围内，如果pod增多，则ReplicationController会终止额外的pod，如果减少，RC会创建新的pod，始终保持在定义范围。
-ReplicationController会替换由于某些原因而被删除或终止的pod，例如在节点故障或中断节点维护（例如内核升级）的情况下。
-即使应用只需要一个pod，我们也建议使用ReplicationController。
-RC跨多个Node节点监视多个pod。
+### Replication Controller概念及常用命令
 
-删除ReplicationController及其Pods：
-使用kubectl delete命令删除ReplicationController及其所有pod。
-只删除 ReplicationController：
-在删除ReplicationController时，可以不影响任何pod。
-使用kubectl，为kubectl delete指定- cascade = false选项。
-ReplicationController隔离pod：
-通过更改标签来从ReplicationController的目标集中删除Pod。
+### Replication Controller实战
 
-RC常用方式：
-Rescheduling（重新规划）
-扩展
-滚动更新
-多版本跟踪
-使用ReplicationControllers与关联的Services
-
-API对象：
-Replication controller是Kubernetes REST API中的顶级资源。
-RC 替代方法：
-ReplicaSet：
-ReplicaSet是支持新的set-based选择器要求的下一代ReplicationController 。
-主要用作Deployment协调pod创建、删除和更新。请注意，除非需要自定义更新编排或根本不需要更新，否则建议使用Deployment而不是直接使用ReplicaSets。
-Deployment（推荐）：
-Deployment是一个高级的API对象，以类似的方式更新其底层的副本集和它们的Pods kubectl rolling-update。
-Bare Pods：
-与用户直接创建pod的情况不同，ReplicationController会替换由于某些原因而被删除或终止的pod，例如在节点故障或中断节点维护（例如内核升级）的情况下。
-即使应用只需要一个pod，我们也建议使用ReplicationController。
-
-Kubernetes Replica Sets：
-ReplicaSet（RS）是Replication Controller（RC）的升级版本。
-ReplicaSet 和  Replication Controller之间的唯一区别是对选择器的支持。
-ReplicaSet支持labels user guide中描述的set-based选择器要求
-Replication Controller仅支持equality-based的选择器要求。
-
-
-大多数kubectl 支持Replication Controller 命令的也支持ReplicaSets。
-ReplicaSets可以独立使用，但它主要被 Deployments用作pod 机制的创建、删除和更新。
-使用Deployment时，你不必担心创建pod的ReplicaSets，因为可以通过Deployment实现管理ReplicaSets。
-ReplicaSet能确保运行指定数量的pod。
-Deployment 是一个更高层次的概念，它能管理ReplicaSets，并提供对pod的更新等功能。
-建议使用Deployment来管理ReplicaSets，除非你需要自定义更新编排。
-
-ReplicaSet as an Horizontal Pod Autoscaler target：
-ReplicaSet也可以作为 Horizontal Pod Autoscalers (HPA)的目标 。
-一个ReplicaSet可以由一个HPA来自动伸缩。
+```powershell
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl create -f rc_nginx.yml # 创建Replication Controller
+replicationcontroller/nginx created
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get rc # 查看Replication Controller详情
+NAME    DESIRED   CURRENT   READY   AGE
+nginx   3         3         3       4m38s
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get pods # 查看pod详情
+NAME          READY   STATUS    RESTARTS   AGE
+nginx-7vwch   1/1     Running   0          4m56s
+nginx-cxp4z   1/1     Running   0          4m56s
+nginx-zscqg   1/1     Running   0          4m56s
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl delete pods nginx-cxp4z # 按照name删除指定的pod
+pod "nginx-cxp4z" deleted
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get pods
+NAME          READY   STATUS    RESTARTS   AGE
+nginx-2n44p   1/1     Running   0          18s
+nginx-7vwch   1/1     Running   0          9m44s
+nginx-zscqg   1/1     Running   0          9m44s
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl scale rc nginx --replicas=4 # Replication Controller扩容
+replicationcontroller/nginx scaled
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get pods
+NAME          READY   STATUS    RESTARTS   AGE
+nginx-2n44p   1/1     Running   0          3m9s
+nginx-7vwch   1/1     Running   0          12m
+nginx-qgjkv   1/1     Running   0          10s
+nginx-zscqg   1/1     Running   0          12m
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl scale rc nginx --replicas=2 # Replication Controller缩容
+replicationcontroller/nginx scaled
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get pods
+NAME          READY   STATUS    RESTARTS   AGE
+nginx-7vwch   1/1     Running   0          13m
+nginx-zscqg   1/1     Running   0          13m
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get rc  
+NAME    DESIRED   CURRENT   READY   AGE
+nginx   2         2         2       13m
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get pods -o wide # 获取pod详细信息
+NAME          READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+nginx-7vwch   1/1     Running   0          13m   172.17.0.6   minikube   <none>           <none>
+nginx-zscqg   1/1     Running   0          13m   172.17.0.7   minikube   <none>           <none>
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl scale rc nginx --replicas=4 # Replication Controller扩容
+replicationcontroller/nginx scaled
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get rc
+NAME    DESIRED   CURRENT   READY   AGE
+nginx   4         4         4       14m
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl delete -f rc_nginx.yml # 删除# Replication Controller扩容
+replicationcontroller "nginx" deleted
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get rc
+No resources found in default namespace.
+➜  第9章 Kubernetes/labs/replicas-set git:(master) ✗   kubectl get pods
+No resources found in default namespace.
+```
 
 ## 9.5 Deployment
 
