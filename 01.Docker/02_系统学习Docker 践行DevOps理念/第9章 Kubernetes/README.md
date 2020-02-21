@@ -197,10 +197,187 @@ kubectl create -f pod.yml # 创建pod
 kubectl delete -f pod.yml # 删除pod
 kubectl get pods # 查看当前的Pod列表
 kubectl get pods -o wide # 查看pod的详细信息
-kubectl exec -it nginx sh # 默认连接第一个容器，可以使用 -c 指定连接哪个容器
+kubectl exec -it nginx sh # 默认连接第一个容器，可以使用 -c 指定连接哪个容器。也可以先minikube ssh进入虚拟机，然后docker exec -it 进入容器.Pod内多个容器用-c指定
 kubectl describe pods nginx # 查看pods详情
 kubectl port-forward nginx 8080（本地端口）:80（容器中端口）#  端口转发 ，临时 退出后失效
 ```
+
+### 实战如下
+
+
+```shell
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master) ✗   kubectl create -f pod_nginx.yml
+pod/nginx created
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master)   kubectl get pods
+NAME    READY   STATUS    RESTARTS   AGE
+nginx   1/1     Running   0          4m13s
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master)   kubectl get pods -o wide
+NAME    READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
+nginx   1/1     Running   0          5m10s   172.17.0.6   minikube   <none>           <none>
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master)   kube exec -it nginx sh
+zsh: command not found: kube
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master) ✗   kubectl exec -it nginx sh
+# exit
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master) ✗   kubectl describe pods nginx
+Name:         nginx
+Namespace:    default
+Priority:     0
+Node:         minikube/10.0.2.15
+Start Time:   Fri, 21 Feb 2020 23:23:30 +0800
+Labels:       app=nginx
+Annotations:  <none>
+Status:       Running
+IP:           172.17.0.6
+IPs:
+  IP:  172.17.0.6
+Containers:
+  nginx:
+    Container ID:   docker://31a158cb9a0177af854cedfe160c3a73adc07a052cc394f71e9bf58038cfa5b6
+    Image:          hub.c.163.com/library/nginx
+    Image ID:       docker-pullable://hub.c.163.com/library/nginx@sha256:f84932f738583e0169f94af9b2d5201be2dbacc1578de73b09a6dfaaa07801d6
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Fri, 21 Feb 2020 23:23:36 +0800
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-gftq5 (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  default-token-gftq5:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-gftq5
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age        From               Message
+  ----    ------     ----       ----               -------
+  Normal  Scheduled  <unknown>  default-scheduler  Successfully assigned default/nginx to minikube
+  Normal  Pulling    25m        kubelet, minikube  Pulling image "hub.c.163.com/library/nginx"
+  Normal  Pulled     25m        kubelet, minikube  Successfully pulled image "hub.c.163.com/library/nginx"
+  Normal  Created    25m        kubelet, minikube  Created container nginx
+  Normal  Started    25m        kubelet, minikube  Started container nginx
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master) ✗   ping 172.17.0.6
+PING 172.17.0.6 (172.17.0.6): 56 data bytes
+Request timeout for icmp_seq 0
+Request timeout for icmp_seq 1
+Request timeout for icmp_seq 2
+Request timeout for icmp_seq 3
+^C
+--- 172.17.0.6 ping statistics ---
+5 packets transmitted, 0 packets received, 100.0% packet loss
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master) ✗   minikube ssh
+                         _             _            
+            _         _ ( )           ( )           
+  ___ ___  (_)  ___  (_)| |/')  _   _ | |_      __  
+/' _ ` _ `\| |/' _ `\| || , <  ( ) ( )| '_`\  /'__`\
+| ( ) ( ) || || ( ) || || |\`\ | (_) || |_) )(  ___/
+(_) (_) (_)(_)(_) (_)(_)(_) (_)`\___/'(_,__/'`\____)
+
+$ ping 172.17.0.6
+PING 172.17.0.6 (172.17.0.6): 56 data bytes
+64 bytes from 172.17.0.6: seq=0 ttl=64 time=0.146 ms
+64 bytes from 172.17.0.6: seq=1 ttl=64 time=0.084 ms
+^C
+--- 172.17.0.6 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max = 0.084/0.115/0.146 ms
+$ curl 172.17.0.6
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+
+$ ip a 
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 08:00:27:1d:50:50 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0
+       valid_lft 68262sec preferred_lft 68262sec
+    inet6 fe80::a00:27ff:fe1d:5050/64 scope link 
+       valid_lft forever preferred_lft forever
+3: eth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 08:00:27:ec:5f:e1 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.100/24 brd 192.168.99.255 scope global dynamic eth1
+       valid_lft 1045sec preferred_lft 1045sec
+    inet6 fe80::a00:27ff:feec:5fe1/64 scope link 
+       valid_lft forever preferred_lft forever
+4: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+    link/sit 0.0.0.0 brd 0.0.0.0
+5: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:97:e2:16:e5 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:97ff:fee2:16e5/64 scope link 
+       valid_lft forever preferred_lft forever
+45: veth498d56e@if44: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether e6:52:ba:dc:5d:6b brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::e452:baff:fedc:5d6b/64 scope link 
+       valid_lft forever preferred_lft forever
+47: veth2da9290@if46: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether ea:c6:7f:b0:76:26 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::e8c6:7fff:feb0:7626/64 scope link 
+       valid_lft forever preferred_lft forever
+49: vethf4560f9@if48: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether e2:3f:ed:c3:c3:fc brd ff:ff:ff:ff:ff:ff link-netnsid 2
+    inet6 fe80::e03f:edff:fec3:c3fc/64 scope link 
+       valid_lft forever preferred_lft forever
+51: vethffe4cb1@if50: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether f2:29:3e:3f:cb:cf brd ff:ff:ff:ff:ff:ff link-netnsid 3
+    inet6 fe80::f029:3eff:fe3f:cbcf/64 scope link 
+       valid_lft forever preferred_lft forever
+53: vethea861d4@if52: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 56:a0:ba:c3:e7:5a brd ff:ff:ff:ff:ff:ff link-netnsid 4
+    inet6 fe80::54a0:baff:fec3:e75a/64 scope link 
+       valid_lft forever preferred_lft forever
+$ exit
+logout
+
+➜  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/pod-basic git:(master) ✗   kubectl port-forward nginx 8080:80
+Forwarding from 127.0.0.1:8080 -> 80
+Forwarding from [::1]:8080 -> 80
+Handling connection for 8080
+^C%    
+```
+
+访问：http://localhost:8080 即可看到nginx的显示，一旦退出kubectl port-forward命令转发就失效了
+![kubectl端口转发很重要](images/kubectl端口转发很重要.png)
 
 ### minikube中直接使用国内的源下载镜像
 
@@ -209,7 +386,6 @@ kubectl port-forward nginx 8080（本地端口）:80（容器中端口）#  端�
 ```shell
 docker pull hub.c.163.com/library/nginx
 ```
-
 
 ## 9.4 ReplicaSet和ReplicationController
 
