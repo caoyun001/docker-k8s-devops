@@ -572,10 +572,146 @@ No resources found in default namespace.
 
 ## 9.5 Deployment
 
-> Deployment—**更加方便**的管理Pod和Replica Set
+> Deployment—**更加方便**的管理Pod和Replica Set、Replication COntroller，本节的实战文件件[deployment_nginx.yml](labs/deployment/deployment_nginx.yml)
 
-参考博文 [ReplicationController,Replica Set,Deployment区别](https://www.cnadn.net/post/2335.htm)
+### 简介
 
-### 9.6 多节点集群，采用[kubeadm](https://github.com/kubernetes/kubeadm)
+### 实战
+
+```shell
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl create -f deployment_nginx.yml
+deployment.apps/nginx-deployment created
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get deployment 
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   3/3     3            3           131m
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get rs        
+NAME                          DESIRED   CURRENT   READY   AGE
+nginx-deployment-6564df5fbd   3         3         3       131m
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-6564df5fbd-ddbpw   1/1     Running   0          132m
+nginx-deployment-6564df5fbd-q8nsr   1/1     Running   0          132m
+nginx-deployment-6564df5fbd-tmsgt   1/1     Running   0          132m
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get deployment -o wide
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES                     SELECTOR
+nginx-deployment   3/3     3            3           132m   nginx        daocloud.io/nginx:1.12.2   app=nginx
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl set image deployment nginx-deployment nginx=daocloud.io/nginx:1.13  
+deployment.apps/nginx-deployment image updated
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get deployment -o wideNAME               READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES                   SELECTOR
+nginx-deployment   3/3     1            3           135m   nginx        daocloud.io/nginx:1.13   app=nginx
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get deployment -o wideNAME               READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES                   SELECTOR
+nginx-deployment   3/3     3            3           137m   nginx        daocloud.io/nginx:1.13   app=nginx
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get pods              NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-69cbd94c99-6l9rp   1/1     Running   0          80s
+nginx-deployment-69cbd94c99-m4dv2   1/1     Running   0          77s
+nginx-deployment-69cbd94c99-r5p9z   1/1     Running   0          2m36s
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get rs
+NAME                          DESIRED   CURRENT   READY   AGE
+nginx-deployment-6564df5fbd   0         0         0       138m
+nginx-deployment-69cbd94c99   3         3         3       2m59s
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl rollout history deployment nginx-deploy
+ment
+deployment.apps/nginx-deployment 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl rollout undo deployment nginx-deployment
+deployment.apps/nginx-deployment rolled back
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get deployment -o wide
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES                     SELECTOR
+nginx-deployment   3/3     3            3           140m   nginx        daocloud.io/nginx:1.12.2   app=nginx
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl rollout history deployment nginx-deployment
+deployment.apps/nginx-deployment 
+REVISION  CHANGE-CAUSE
+2         <none>
+3         <none>
+```
+
+### 如果想对外暴露自己的服务，可以用expose服务
+
+> 下面以nginx-deployment为例
+
+```shell
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl expose deployment nginx-deployment --type=NodePort
+service/nginx-deployment exposed
+➜ 第9章 Kubernetes/labs/deployment git:(master) ✗   kubectl get svc
+NAME               TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)        AGE
+kubernetes         ClusterIP   10.96.0.1     <none>        443/TCP        38h
+nginx-deployment   NodePort    10.97.64.51   <none>        80:30527/TCP   46s
+```
+
+通过上面的命令可知我们对外暴露了虚拟机的30527端口，虚拟机的ip可以通过ssh登录后用`ip a`查询得到，这里minikube虚拟机的ip查询到如下：
+
+```shell
+  /Users/liangshanguang/Program/docker/docker-k8s-devops/01.Docker/02_系统学习Docker 践行DevOps理念/第9章 Kubernetes/labs/deployment git:(master) ✗   minikube ssh
+                         _             _            
+            _         _ ( )           ( )           
+  ___ ___  (_)  ___  (_)| |/')  _   _ | |_      __  
+/' _ ` _ `\| |/' _ `\| || , <  ( ) ( )| '_`\  /'__`\
+| ( ) ( ) || || ( ) || || |\`\ | (_) || |_) )(  ___/
+(_) (_) (_)(_)(_) (_)(_)(_) (_)`\___/'(_,__/'`\____)
+
+$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 08:00:27:1d:50:50 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0
+       valid_lft 58968sec preferred_lft 58968sec
+    inet6 fe80::a00:27ff:fe1d:5050/64 scope link 
+       valid_lft forever preferred_lft forever
+3: eth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 08:00:27:ec:5f:e1 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.100/24 brd 192.168.99.255 scope global dynamic eth1
+       valid_lft 746sec preferred_lft 746sec
+    inet6 fe80::a00:27ff:feec:5fe1/64 scope link 
+       valid_lft forever preferred_lft forever
+4: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+    link/sit 0.0.0.0 brd 0.0.0.0
+5: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:97:e2:16:e5 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:97ff:fee2:16e5/64 scope link 
+       valid_lft forever preferred_lft forever
+45: veth498d56e@if44: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether e6:52:ba:dc:5d:6b brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::e452:baff:fedc:5d6b/64 scope link 
+       valid_lft forever preferred_lft forever
+47: veth2da9290@if46: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether ea:c6:7f:b0:76:26 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::e8c6:7fff:feb0:7626/64 scope link 
+       valid_lft forever preferred_lft forever
+49: vethf4560f9@if48: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether e2:3f:ed:c3:c3:fc brd ff:ff:ff:ff:ff:ff link-netnsid 2
+    inet6 fe80::e03f:edff:fec3:c3fc/64 scope link 
+       valid_lft forever preferred_lft forever
+51: vethffe4cb1@if50: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether f2:29:3e:3f:cb:cf brd ff:ff:ff:ff:ff:ff link-netnsid 3
+    inet6 fe80::f029:3eff:fe3f:cbcf/64 scope link 
+       valid_lft forever preferred_lft forever
+87: vethf840081@if86: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 9a:52:10:d8:a6:a9 brd ff:ff:ff:ff:ff:ff link-netnsid 6
+    inet6 fe80::9852:10ff:fed8:a6a9/64 scope link 
+       valid_lft forever preferred_lft forever
+89: veth476d988@if88: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 52:5b:14:eb:d6:e7 brd ff:ff:ff:ff:ff:ff link-netnsid 5
+    inet6 fe80::505b:14ff:feeb:d6e7/64 scope link 
+       valid_lft forever preferred_lft forever
+91: veth4fc5e13@if90: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 02:d5:33:af:9b:a0 brd ff:ff:ff:ff:ff:ff link-netnsid 4
+    inet6 fe80::d5:33ff:feaf:9ba0/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+
+可以看到虚拟机ip是192.168.99.100，所以访问 http://192.168.99.100:30527/ 即可看到nginx的网页
+![访问expose的deploment服务](images/访问expose的deploment服务.png)
+
+## 9.6 多节点集群，采用[kubeadm](https://github.com/kubernetes/kubeadm)
 
 ### 在cloud上安装k8s集群，用[kops](https://github.com/kubernetes/kops)
