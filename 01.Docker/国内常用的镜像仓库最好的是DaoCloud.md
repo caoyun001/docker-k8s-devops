@@ -8,3 +8,7 @@
 ## 二、国外仓库
 + Docker Hub:    https://hub.docker.com/
 + Quay: https://quay.io/search
+
+## 国内的开源镜像仓
+最好的是阿里的 https://developer.aliyun.com/mirror/
+docker、k8s、系统镜像源等都很有用

@@ -58,7 +58,6 @@ Server:
 
 ## Configuring Kubernetes Master node
 
-
 ### kubeadm init on master node
 
 ```bash
@@ -240,5 +239,4 @@ kube-system   weave-net-jnlkn                      2/2     Running   0          
 
 ## Reference
 
-[https://blog.tekspace.io/setup-kubernetes-cluster-on-centos-7/](https://blog.tekspace.io/setup-kubernetes-cluster-on-centos-7/
-)
+[https://blog.tekspace.io/setup-kubernetes-cluster-on-centos-7/](https://blog.tekspace.io/setup-kubernetes-cluster-on-centos-7/)
