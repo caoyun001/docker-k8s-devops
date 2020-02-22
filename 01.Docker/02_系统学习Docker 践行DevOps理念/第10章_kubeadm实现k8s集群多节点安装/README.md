@@ -1,5 +1,10 @@
 # 第10章 Kubeadm实现多节点k8s集群安装
 
+本节参考了如下两篇博客，均在当前目录保存下来了一份markdown版本~原始文章链接如下
+
++ [k8s集群安装](https://www.jianshu.com/p/67a3bf4458e8)
++ [搭建k8s集群完整篇](https://www.jianshu.com/p/f4ac7f4555d3)
+
 ## 1.准备3台虚拟机
 > 使用VirtualBox基于centos的ova镜像创建3台虚拟机
 
@@ -445,4 +450,4 @@ k8s-node01   Ready    <none>   63m    v1.17.3
 k8s-node02   Ready    <none>   63m    v1.17.3
 ```
 
-## 7.配置
+## 7.部署kubernetes Dashboard

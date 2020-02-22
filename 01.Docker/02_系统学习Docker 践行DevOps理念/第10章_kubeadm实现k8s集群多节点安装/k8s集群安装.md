@@ -1,12 +1,11 @@
-# k8s集群安装最终可用版
-
+# k8s集群安装
+> 文章来源：https://www.jianshu.com/p/67a3bf4458e8
 ## 一、集群架构图
 
-![img](https:////upload-images.jianshu.io/upload_images/8782293-4a5b5ba08699620b.png?imageMogr2/auto-orient/strip|imageView2/2/w/713/format/webp)
+![k8s集群架构图1](images/k8s集群架构图1.png)
 
 
-
-![img](https:////upload-images.jianshu.io/upload_images/8782293-6e0b92208d980a12.png?imageMogr2/auto-orient/strip|imageView2/2/w/880/format/webp)
+![k8s集群架构图2](images/k8s集群架构图2.png)
 
 ## 二、相关概念
 
