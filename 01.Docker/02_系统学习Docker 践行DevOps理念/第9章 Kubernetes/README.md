@@ -576,6 +576,8 @@ No resources found in default namespace.
 
 ### 简介
 
+见当前目录的[deployment的详细使用.md](deployment的详细使用.md)
+
 ### 实战
 
 ```shell
