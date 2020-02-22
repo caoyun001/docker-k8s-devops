@@ -451,3 +451,112 @@ k8s-node02   Ready    <none>   63m    v1.17.3
 ```
 
 ## 7.部署kubernetes Dashboard
+### 7.1 修改配置文件的镜像源和访问方式
+这里部署dashboard v1.10.1版本。官方的2.0版本还没出Release版本
+从 https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml 把配置文件下载下来，如果发现该链接失效，请访问https://github.com/kubernetes/dashboard，然后查找最新的链接。
+
+由于yaml配置文件中指定镜像从google拉取，先下载yaml文件到本地，修改配置从阿里云仓库拉取镜像。即把`k8s.gcr.io`改成`registry.cn-hangzhou.aliyuncs.com/google_containers`
+
+```yaml
+[centos@k8s-master ~]$ vim kubernetes-dashboard.yaml
+......
+ containers:
+      - name: kubernetes-dashboard
+        #image: k8s.gcr.io/kubernetes-dashboard-amd64:v1.10.1
+        image: registry.cn-hangzhou.aliyuncs.com/google_containers/kubernetes-dashboard-amd64:v1.10.1
+        ports:
+......
+```
+
+默认Dashboard只能集群内部访问，修改Service为NodePort类型，暴露到外部：不修改的话外部不能访问。
+```yaml
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+# 在kubernetes-dashboard.yaml的最下方几行该下面两个地方
+spec:
+  type: NodePort # 修改1
+  ports:
+    - port: 443
+      targetPort: 8443
+      nodePort: 30000 # 修改2
+  selector:
+    k8s-app: kubernetes-dashboard
+```
+
+### 7.2 启动DashBoard并查看检查是否正常
+启动dashboard
+
+```shell
+[root@k8s-master ~]# kubectl apply -f kubernetes-dashboard.yaml
+secret/kubernetes-dashboard-certs created
+serviceaccount/kubernetes-dashboard created
+role.rbac.authorization.k8s.io/kubernetes-dashboard-minimal created
+rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard-minimal created
+deployment.apps/kubernetes-dashboard created
+service/kubernetes-dashboard created
+```
+查看dashboard是否正常
+
+```shell
+[root@k8s-master ~]# kubectl get pods,svc -n kube-system
+NAME                                        READY   STATUS    RESTARTS   AGE
+pod/coredns-9d85f5447-lmqbg                 1/1     Running   0          173m
+pod/coredns-9d85f5447-nwk25                 1/1     Running   0          173m
+pod/etcd-k8s-master                         1/1     Running   0          173m
+pod/kube-apiserver-k8s-master               1/1     Running   0          173m
+pod/kube-controller-manager-k8s-master      1/1     Running   0          173m
+pod/kube-flannel-ds-amd64-25hrp             1/1     Running   0          108m
+pod/kube-flannel-ds-amd64-lx7n5             1/1     Running   0          109m
+pod/kube-flannel-ds-amd64-nd7ng             1/1     Running   0          158m
+pod/kube-proxy-4jnzs                        1/1     Running   0          173m
+pod/kube-proxy-kfhdn                        1/1     Running   0          108m
+pod/kube-proxy-trghs                        1/1     Running   1          109m
+pod/kube-scheduler-k8s-master               1/1     Running   0          173m
+pod/kubernetes-dashboard-68798cb565-pfzx8   1/1     Running   0          45s  # 这里READY是1/1说明kubernetes-dashboard启动成功了
+
+NAME                           TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                  AGE
+service/kube-dns               ClusterIP   10.1.0.10      <none>        53/UDP,53/TCP,9153/TCP   173m
+service/kubernetes-dashboard   NodePort    10.1.232.133   <none>        443:30000 # 这里可以看到端口映射出来了
+```
+
+
+然后访问地址，必须在**火狐浏览器**中用**https**打开：https://NodeIP:30001 ，如下图
+![火狐浏览器访问k8s的dashboard](images/火狐浏览器访问k8s的dashboard.png)
+
+不能用Chrome是因为Chrome的安全策略限制，后续也可以自己添加ssl就可以用Chrome访问了，安全方面后续再说。
+
+### 7.3 添加用户并使用令牌登录
+
+```shell
+kubectl create serviceaccount dashboard-admin -n kube-system
+kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
+kubectl describe secrets -n kube-system $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
+```
+
+详细如下：
+
+```shell
+[root@k8s-master ~]# kubectl create serviceaccount dashboard-admin -n kube-system
+serviceaccount/dashboard-admin created
+[root@k8s-master ~]# kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
+clusterrolebinding.rbac.authorization.k8s.io/dashboard-admin created
+[root@k8s-master ~]# kubectl describe secrets -n kube-system $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
+Name:         dashboard-admin-token-j4gkx
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  kubernetes.io/service-account.name: dashboard-admin
+              kubernetes.io/service-account.uid: b3997ab1-3803-4a25-81eb-8ebfd24dd6c5
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+token:      eyJhbGciOiJSUzI1NiIsImtpZCI6ImNyd2tjQ09pOEVOczRiM2N6QUg0LWc2RjZ6TllYX1hvcXBYbGNwX2pjbDgifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkYXNoYm9hcmQtYWRtaW4tdG9rZW4tajRna3giLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGFzaGJvYXJkLWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiYjM5OTdhYjEtMzgwMy00YTI1LTgxZWItOGViZmQyNGRkNmM1Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmRhc2hib2FyZC1hZG1pbiJ9.hnsyKb75GETb0Q3m_D2rY5b1B2X9Qr6RqCF8Y1wyyzVK6ZCaFtaUpq3pUTX48eM2tlLuT4QvLAo1CcerjLKCxxXen3bD2vSrC3OJBu9zM_EFlR5eFCN0Qk7kpbyNyDODa-2EGMm3ZLskIiIFf-w3Xe8FTyzZ_Xm_repgYiy5k4TXoGU4reBc7b9iRuLuoHm9QELF9kmsWdYsoFnkWIh0w--e5-r_aFkT_Iz6CKkePGMWo0gG8B9SOt_kp1yi0A-3FTMEuRS_G6LlB193VB2L4F0XmovvvZ45z4G652uFScqZ7vFEaLDj0RcA6SIo2_XUIRmn0Mzi9uX2sq3vbnJRrA
+ca.crt:     1025 bytes
+namespace:  11 bytes
+```
