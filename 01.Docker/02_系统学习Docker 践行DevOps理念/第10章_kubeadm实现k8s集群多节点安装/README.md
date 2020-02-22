@@ -1,6 +1,6 @@
 # 第10章 Kubeadm实现多节点k8s集群安装
 
-## 准备3台虚拟机
+## 1.准备3台虚拟机
 > 使用VirtualBox基于centos的ova镜像创建3台虚拟机
 
 ova镜像在我的百度网盘里，实际是拿地[廖师兄的SpringBoot实战微信点餐系统](https://coding.imooc.com/down/117.html)的[课程资料里提供的镜像](https://git.imooc.com/coding-117/coding-117/src/develop/doc/虚拟机说明文档.md)，百度网盘的路径如下，直接从"管理"-->"导入虚拟电脑"即可，导入创建好把3台虚拟机的`/etc/hostname`分别改成master、node1、node2，然后重启3台虚拟机
@@ -10,17 +10,17 @@ ova镜像在我的百度网盘里，实际是拿地[廖师兄的SpringBoot实战
 
 | 虚拟机IP        | 用户名 | 密码   | 主机名 | 作用            |
 | --------------- | ------ | ------ | ------ | --------------- |
-| 192.168.100.116 | root   | 123456 | k8s-master | k8s的master节点 |
-| 192.168.100.117 | root   | 123456 | k8s-node01  | k8s的node节点1  |
-| 192.168.100.118 | root   | 123456 | k8s-node02  | k8s的node节点2  |
+| 192.168.100.120 | root   | 123456 | k8s-master | k8s的master节点 |
+| 192.168.100.121 | root   | 123456 | k8s-node01  | k8s的node节点1  |
+| 192.168.100.122 | root   | 123456 | k8s-node02  | k8s的node节点2  |
 
 ## 安装docker以及k8s均可以使用[阿里云的镜像源](https://developer.aliyun.com/mirror/)
 
-## 安装docker
+## 2.安装docker
 
-参考教程：https://developer.aliyun.com/mirror/docker-ce?spm=a2c6h.13651102.0.0.3e221b11lPzn2K
+> 参考教程：https://developer.aliyun.com/mirror/docker-ce
 
-### Ubuntu 14.04/16.04（使用 apt-get 进行安装）
+### 2.1 Ubuntu 14.04/16.04（使用 apt-get 进行安装）
 ```shell
 # step 1: 安装必要的一些系统工具
 sudo apt-get update
@@ -41,7 +41,7 @@ sudo apt-get -y install docker-ce
 # Step 2: 安装指定版本的Docker-CE: (VERSION例如上面的17.03.1~ce-0~ubuntu-xenial)
 # sudo apt-get -y install docker-ce=[VERSION]
 ```
-### CentOS 7（使用 yum 进行安装）
+### 2.2 CentOS 7（使用 yum 进行安装）
 ```shell
 # step 1: 安装必要的一些系统工具
 sudo yum install -y yum-utils device-mapper-persistent-data lvm2
@@ -71,9 +71,9 @@ sudo service docker start
 # sudo yum -y install docker-ce-[VERSION]
 ```
 
-## 安装k8s
-
-### Debian / Ubuntu
+## 3.安装k8s需要的软件
+> 参考教程：https://developer.aliyun.com/mirror/kubernetes
+### 3.1 Debian / Ubuntu
 ```shell
 apt-get update && apt-get install -y apt-transport-https
 curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - 
@@ -84,7 +84,7 @@ apt-get update
 apt-get install -y kubelet kubeadm kubectl
 ```
 
-### CentOS / RHEL / Fedora
+### 3.2 CentOS / RHEL / Fedora
 ```shell
 cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
@@ -99,7 +99,7 @@ setenforce 0
 yum install -y kubelet kubeadm kubectl
 systemctl enable kubelet && systemctl start kubelet
 ```
-### 查看安装清单
+### 3.3 查看安装清单
 
 > 三个节点都执行`rpm -ql kubelet`，返回如下内容表示成功
 ```shell
@@ -109,30 +109,25 @@ systemctl enable kubelet && systemctl start kubelet
 /usr/bin/kubelet #主程序
 ```
 
-## 配置k8s集群
+## 4.初始化环境
+> 本节所有步骤在三个节点上都执行，配置完了把3台机器都重启下~
 
-### 修改主机命名【可操作】
-> 三个节点上都执行
-
+### 4.1 修改主机命名【可操作】
 ```shell
- vim /etc/hosts
+vim /etc/hosts
 # 加入如下内容
-192.168.100.116 k8s-master
-192.168.100.117 k8s-node01
-192.168.100.118 k8s-node02
+192.168.100.120 k8s-master
+192.168.100.121 k8s-node01
+192.168.100.122 k8s-node02
 ```
 
-### 关闭并禁用防火墙
-> 三个节点上都执行
-
+### 4.2 关闭并禁用防火墙
 ```shell
 systemctl stop firewalld
 systemctl disable firewalld
 ```
 
-### 网络桥接设置
-> 三个节点上都执行
-
+### 4.3 网络桥接设置
 ```shell
 echo 'net.bridge.bridge-nf-call-iptables = 1'>>/etc/sysctl.conf
 echo 'net.bridge.bridge-nf-call-ip6tables = 1'>>/etc/sysctl.conf
@@ -142,89 +137,185 @@ sysctl -p
 # net.bridge.bridge-nf-call-ip6tables = 1
 ```
 
-### k8s相关docker镜像获取
-> 三个节点上都执行
-
+### 4.4 关闭selinux
 ```shell
-docker pull registry.cn-beijing.aliyuncs.com/yzxd/kube-apiserver:v1.12.1
-docker pull registry.cn-beijing.aliyuncs.com/yzxd/kube-controller-manager:v1.12.1
-docker pull registry.cn-beijing.aliyuncs.com/yzxd/kube-scheduler:v1.12.1
-docker pull registry.cn-beijing.aliyuncs.com/yzxd/kube-proxy:v1.12.1
-docker pull registry.cn-beijing.aliyuncs.com/yzxd/etcd:3.2.24
-docker pull registry.cn-beijing.aliyuncs.com/yzxd/pause:3.1
-docker pull registry.cn-beijing.aliyuncs.com/yzxd/coredns:1.2.2
-docker pull registry.cn-beijing.aliyuncs.com/yzxd/flannel:v0.10.0-amd64
-
-# 下载完成后，查看镜像
-[root@k8s-master ~]# docker images
-REPOSITORY                                                      TAG                 IMAGE ID            CREATED             SIZE
-registry.cn-beijing.aliyuncs.com/yzxd/kube-proxy                v1.12.1             61afff57f010        2 months ago        96.6MB
-registry.cn-beijing.aliyuncs.com/yzxd/kube-apiserver            v1.12.1             dcb029b5e3ad        2 months ago        194MB
-registry.cn-beijing.aliyuncs.com/yzxd/kube-controller-manager   v1.12.1             aa2dd57c7329        2 months ago        164MB
-registry.cn-beijing.aliyuncs.com/yzxd/kube-scheduler            v1.12.1             d773ad20fd80        2 months ago        58.3MB
-registry.cn-beijing.aliyuncs.com/yzxd/etcd                      3.2.24              3cab8e1b9802        2 months ago        220MB
-registry.cn-beijing.aliyuncs.com/yzxd/coredns                   1.2.2               367cdc8433a4        3 months ago        39.2MB
-registry.cn-beijing.aliyuncs.com/yzxd/flannel                   v0.10.0-amd64       f0fad859c909        10 months ago       44.6MB
-registry.cn-beijing.aliyuncs.com/yzxd/pause                     3.1                 da86e6ba6ca1        11 months ago       742kB
-
-# 由于k8s使用镜像名称与下载的镜像名不同，需要进行镜像名称改动
-docker tag registry.cn-beijing.aliyuncs.com/yzxd/pause:3.1 k8s.gcr.io/pause:3.1
-docker tag registry.cn-beijing.aliyuncs.com/yzxd/coredns:1.2.2 k8s.gcr.io/coredns:1.2.2
-docker tag registry.cn-beijing.aliyuncs.com/yzxd/etcd:3.2.24 k8s.gcr.io/etcd:3.2.24
-docker tag registry.cn-beijing.aliyuncs.com/yzxd/kube-scheduler:v1.12.1 k8s.gcr.io/kube-scheduler:v1.12.1
-docker tag registry.cn-beijing.aliyuncs.com/yzxd/kube-controller-manager:v1.12.1 k8s.gcr.io/kube-controller-manager:v1.12.1
-docker tag registry.cn-beijing.aliyuncs.com/yzxd/kube-apiserver:v1.12.1 k8s.gcr.io/kube-apiserver:v1.12.1
-docker tag registry.cn-beijing.aliyuncs.com/yzxd/kube-proxy:v1.12.1 k8s.gcr.io/kube-proxy:v1.12.1
-docker tag registry.cn-beijing.aliyuncs.com/yzxd/flannel:v0.10.0-amd64 quay.io/coreos/flannel:v0.10.0-amd64
-
-# 修改后的镜像列表
-[root@k8s-master ~]# docker images
-REPOSITORY                                                      TAG                 IMAGE ID            CREATED             SIZE
-k8s.gcr.io/kube-proxy                                           v1.12.1             61afff57f010        2 months ago        96.6MB
-registry.cn-beijing.aliyuncs.com/yzxd/kube-proxy                v1.12.1             61afff57f010        2 months ago        96.6MB
-k8s.gcr.io/kube-scheduler                                       v1.12.1             d773ad20fd80        2 months ago        58.3MB
-registry.cn-beijing.aliyuncs.com/yzxd/kube-scheduler            v1.12.1             d773ad20fd80        2 months ago        58.3MB
-k8s.gcr.io/kube-apiserver                                       v1.12.1             dcb029b5e3ad        2 months ago        194MB
-registry.cn-beijing.aliyuncs.com/yzxd/kube-apiserver            v1.12.1             dcb029b5e3ad        2 months ago        194MB
-k8s.gcr.io/kube-controller-manager                              v1.12.1             aa2dd57c7329        2 months ago        164MB
-registry.cn-beijing.aliyuncs.com/yzxd/kube-controller-manager   v1.12.1             aa2dd57c7329        2 months ago        164MB
-k8s.gcr.io/etcd                                                 3.2.24              3cab8e1b9802        2 months ago        220MB
-registry.cn-beijing.aliyuncs.com/yzxd/etcd                      3.2.24              3cab8e1b9802        2 months ago        220MB
-k8s.gcr.io/coredns                                              1.2.2               367cdc8433a4        3 months ago        39.2MB
-registry.cn-beijing.aliyuncs.com/yzxd/coredns                   1.2.2               367cdc8433a4        3 months ago        39.2MB
-quay.io/coreos/flannel                                          v0.10.0-amd64       f0fad859c909        10 months ago       44.6MB
-registry.cn-beijing.aliyuncs.com/yzxd/flannel                   v0.10.0-amd64       f0fad859c909        10 months ago       44.6MB
-k8s.gcr.io/pause                                                3.1                 da86e6ba6ca1        11 months ago       742kB
-registry.cn-beijing.aliyuncs.com/yzxd/pause                     3.1                 da86e6ba6ca1        11 months ago       742kB
-
-# 删除下载的镜像
-docker rmi registry.cn-beijing.aliyuncs.com/yzxd/kube-apiserver:v1.12.1
-docker rmi registry.cn-beijing.aliyuncs.com/yzxd/kube-controller-manager:v1.12.1
-docker rmi registry.cn-beijing.aliyuncs.com/yzxd/kube-scheduler:v1.12.1
-docker rmi registry.cn-beijing.aliyuncs.com/yzxd/kube-proxy:v1.12.1
-docker rmi registry.cn-beijing.aliyuncs.com/yzxd/etcd:3.2.24
-docker rmi registry.cn-beijing.aliyuncs.com/yzxd/pause:3.1
-docker rmi registry.cn-beijing.aliyuncs.com/yzxd/coredns:1.2.2
-docker rmi registry.cn-beijing.aliyuncs.com/yzxd/flannel:v0.10.0-amd64
-
-[root@k8s-master ~]# docker images
-REPOSITORY                           TAG                 IMAGE ID            CREATED             SIZE
-k8s.gcr.io/kube-proxy                v1.12.1             61afff57f010        2 months ago        96.6MB
-k8s.gcr.io/kube-scheduler            v1.12.1             d773ad20fd80        2 months ago        58.3MB
-k8s.gcr.io/kube-apiserver            v1.12.1             dcb029b5e3ad        2 months ago        194MB
-k8s.gcr.io/kube-controller-manager   v1.12.1             aa2dd57c7329        2 months ago        164MB
-k8s.gcr.io/etcd                      3.2.24              3cab8e1b9802        2 months ago        220MB
-k8s.gcr.io/coredns                   1.2.2               367cdc8433a4        3 months ago        39.2MB
-quay.io/coreos/flannel               v0.10.0-amd64       f0fad859c909        10 months ago       44.6MB
-k8s.gcr.io/pause                     3.1                 da86e6ba6ca1        11 months ago       742kB
+sed -i 's/enforcing/disabled/' /etc/selinux/config 
+setenforce 0
 ```
 
-如果想获取更高k8s.gcr.io相关包，可根据以下方式获取，因为docker.io仓库对google的容器做了镜像，这根据网速快慢，决定下载快慢，网卡实时，可能会下载失败。下载完后修改成对应的名称。
+### 4.5 关闭swap
++ (1)临时关闭swap分区, 重启失效：`swapoff  -a`
++ (2)永久关闭swap分区：`sed -ri 's/.*swap.*/#&/' /etc/fstab`
+
+## 5.配置master
+> 192.168.100.120上进行
+
+### 5.1 初始下载镜像
 
 ```shell
-docker pull mirrorgooglecontainers/kube-apiserver:v1.13.0
-docker pull mirrorgooglecontainers/kube-controller-manager-amd64:v1.13.0
-docker pull mirrorgooglecontainers/kube-scheduler-amd64:v1.13.0
-docker pull mirrorgooglecontainers/kube-proxy-amd64:v1.13.0
+# 初始化master,指定阿里云的registry很重要
+$ kubeadm init \
+  --apiserver-advertise-address=192.168.100.120 \
+  --image-repository registry.aliyuncs.com/google_containers \
+  --kubernetes-version v1.17.3 \
+  --service-cidr=10.1.0.0/16 \
+  --pod-network-cidr=10.244.0.0/16
+
+# kubeadm 以后将会在 /etc/kubernetes/ 路径下生成配置文件和证书文件
+[root@k8s-master ~]# cd /etc
+[root@k8s-master etc]# tree kubernetes/
+kubernetes/
+├── admin.conf
+├── controller-manager.conf
+├── kubelet.conf
+├── manifests
+│   ├── etcd.yaml
+│   ├── kube-apiserver.yaml
+│   ├── kube-controller-manager.yaml
+│   └── kube-scheduler.yaml
+├── pki
+│   ├── apiserver.crt
+│   ├── apiserver-etcd-client.crt
+│   ├── apiserver-etcd-client.key
+│   ├── apiserver.key
+│   ├── apiserver-kubelet-client.crt
+│   ├── apiserver-kubelet-client.key
+│   ├── ca.crt
+│   ├── ca.key
+│   ├── etcd
+│   │   ├── ca.crt
+│   │   ├── ca.key
+│   │   ├── healthcheck-client.crt
+│   │   ├── healthcheck-client.key
+│   │   ├── peer.crt
+│   │   ├── peer.key
+│   │   ├── server.crt
+│   │   └── server.key
+│   ├── front-proxy-ca.crt
+│   ├── front-proxy-ca.key
+│   ├── front-proxy-client.crt
+│   ├── front-proxy-client.key
+│   ├── sa.key
+│   └── sa.pub
+└── scheduler.conf
 ```
-到目前为止，所以镜像文件已经准备完毕！！！
+
+#### 5.2 上一步的完整的回显如下：
+
+```shell
+# 这里是执行的命令
+[root@k8s-master ~]# kubeadm init \
+>   --apiserver-advertise-address=192.168.100.120 \
+>   --image-repository registry.aliyuncs.com/google_containers \
+>   --kubernetes-version v1.17.3 \
+>   --service-cidr=10.1.0.0/16 \
+>   --pod-network-cidr=10.244.0.0/16
+# 下面是执行后的回显
+W0222 19:55:58.204992   10912 validation.go:28] Cannot validate kube-proxy config - no validator is available
+W0222 19:55:58.205038   10912 validation.go:28] Cannot validate kubelet config - no validator is available
+[init] Using Kubernetes version: v1.17.3
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [k8s-master kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.1.0.1 192.168.100.120]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [k8s-master localhost] and IPs [192.168.100.120 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [k8s-master localhost] and IPs [192.168.100.120 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+W0222 19:58:05.955422   10912 manifests.go:214] the default kube-apiserver authorization-mode is "Node,RBAC"; using "Node,RBAC"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+W0222 19:58:05.955949   10912 manifests.go:214] the default kube-apiserver authorization-mode is "Node,RBAC"; using "Node,RBAC"
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+[apiclient] All control plane components are healthy after 34.502294 seconds
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config-1.17" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Skipping phase. Please see --upload-certs
+[mark-control-plane] Marking the node k8s-master as control-plane by adding the label "node-role.kubernetes.io/master=''"
+[mark-control-plane] Marking the node k8s-master as control-plane by adding the taints [node-role.kubernetes.io/master:NoSchedule]
+[bootstrap-token] Using token: k548mt.yribhfsi0wpm2oj7
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes control-plane has initialized successfully!
+
+# 这块是master上还需要执行的命令
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+# 这块是把node节点加入进来的命令
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.100.120:6443 --token k548mt.yribhfsi0wpm2oj7 \
+    --discovery-token-ca-cert-hash sha256:a8547093f50009de5b6849973c90218e0e816cfa1c32a21b7712f15665b2d30e
+```
+
+### 5.3 按照上一步的回显执行配置初始化，并查询初始化状态
+```shell
+# 下面3行时上面的回显倒数第二处需要注意的地方
+[root@k8s-master kubernetes]# mkdir -p $HOME/.kube
+[root@k8s-master kubernetes]# sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+[root@k8s-master kubernetes]# sudo chown $(id -u):$(id -g) $HOME/.kube/config
+[root@k8s-master kubernetes]# kubectl get nodes // 查看k8s节点信息，说明：状态为NotReady，是因为还缺flannel组件，没有这个组件是没法设置网络的。
+NAME         STATUS     ROLES    AGE     VERSION
+k8s-master   NotReady   master   5m58s   v1.17.3
+[root@k8s-master kubernetes]# kubectl get cs // 查看组件信息，
+NAME                 STATUS    MESSAGE             ERROR
+scheduler            Healthy   ok
+controller-manager   Healthy   ok
+etcd-0               Healthy   {"health":"true"}
+```
+
+### 5.4 安装flannel网络组件(master上执行)
+> 下载地址：https://github.com/coreos/flannel
+
+```shell
+[root@k8s-master ~]# kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+podsecuritypolicy.policy/psp.flannel.unprivileged created
+clusterrole.rbac.authorization.k8s.io/flannel created
+clusterrolebinding.rbac.authorization.k8s.io/flannel created
+serviceaccount/flannel created
+configmap/kube-flannel-cfg created
+daemonset.apps/kube-flannel-ds-amd64 created
+daemonset.apps/kube-flannel-ds-arm64 created
+daemonset.apps/kube-flannel-ds-arm created
+daemonset.apps/kube-flannel-ds-ppc64le created
+daemonset.apps/kube-flannel-ds-s390x created
+```
+
+查看当前master节点上kube-system名称空间里运行的所有pod状态：
