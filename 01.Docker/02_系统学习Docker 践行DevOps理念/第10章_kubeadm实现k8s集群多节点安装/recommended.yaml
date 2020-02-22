@@ -241,9 +241,11 @@ metadata:
   name: dashboard-metrics-scraper
   namespace: kubernetes-dashboard
 spec:
+  type: NodePort
   ports:
     - port: 8000
       targetPort: 8000
+      nodePort: 30008
   selector:
     k8s-app: dashboard-metrics-scraper
 

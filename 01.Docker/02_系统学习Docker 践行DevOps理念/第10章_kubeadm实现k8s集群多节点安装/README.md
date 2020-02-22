@@ -566,7 +566,9 @@ namespace:  11 bytes
 
 记录保存token，使用令牌登录上面的dashboard即可
 
-## 7.DashBoard2.0的使用
+## Todo: 7.DashBoard2.0的使用
 > k8s在1.6以上的版本必须使用dashboard的2.0版本了~不能再用网上最多的1.10.x了~添加新的之前强删除之前的bashboard `kubectl delete ns kubernetes-dashboard`
 
+见 https://github.com/kubernetes/dashboard/releases
 
+后面再找教程部署吧~~这里先用命令行吧~
