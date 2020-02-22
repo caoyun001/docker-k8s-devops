@@ -30,8 +30,12 @@
 
 ## 9.2 Linux上Minikube快速搭建K8S单节点环境
 
+> 下面73行还有Mac上的minikube安装，更靠谱些，linux上安装minukube太麻烦而且没成功
+
 ### 安装kubectl
+
 > [官网教程](https://kubernetes.io/docs/tasks/tools/install-kubectl/)，如果下载不下来可以在百度网盘的`2.软件/kubectl`里面找，下载下来后放到linux上，并在存放目录执行如下命令
+
 ```shell
 cp kubectl /usr/local/bin/
 chmod +x /usr/local/bin/kubectl
@@ -39,6 +43,7 @@ kubectl version # 返回版本号表示kubectl安装成功
 ```
 
 ### 安装minekube
+
 > [minikube](https://github.com/kubernetes/minikube)
 
 为了方便国内用户使用minikube，阿里对minikube进行了二次编译和适配，不用翻墙，直接用下面的命令就能安装minukube
@@ -49,6 +54,7 @@ kubectl version # 返回版本号表示kubectl安装成功
 
 用`minikube version`查看版本，返回版本号说明minikube安装成功，
 下面启动minikube
+
 ```shell
 minikube start --vm-driver=none --registry-mirror=https://registry.docker-cn.com
 ```
@@ -56,13 +62,80 @@ minikube start --vm-driver=none --registry-mirror=https://registry.docker-cn.com
 使用linux本机作为运行环境所以vm-driver为none，同时镜像下载使用docker国内源。
 
 检验minikube是否能用
+
 ```shell
 kubectl run hello-minikube --image=k8s.gcr.io/echoserver:1.4 --port=8080
 kubectl get pod
 ```
+
 看到容器信息，说明运行起来了。
 
+## 9.2 Mac上的Minikube安装
+
+### 安装Kubectl
+
+## 安装virtualbox
+
+从百度网盘下载并安装，见**2.软件/1.代码开发/VirtualBox/virtualbox6012.dmg**
+
+### 安装kubectl
+
+下载地址： https://storage.googleapis.com/kubernetes-release/release/v1.17.0/bin/darwin/amd64/kubectl
+
+安装
+
+```shell
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+kubectl version --client
+```
+
+### 安装minikube
+
+```shell
+curl -Lo minikube http://kubernetes.oss-cn-hangzhou.aliyuncs.com/minikube/releases/v1.4.0/minikube-darwin-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+```
+
+### 启动minikube
+
+```shell
+minikube start --registry-mirror=https://registry.docker-cn.com
+```
+
+### 安装完后的样子如下：
+
+```shell
+➜  /Users/liangshanguang/Downloads   sudo mv ./kubectl /usr/local/bin/kubectl
+Password:
+➜  /Users/liangshanguang/Downloads   kubectl version --client
+Client Version: version.Info{Major:"1", Minor:"17", GitVersion:"v1.17.0", GitCommit:"70132b0f130acc0bed193d9ba59dd186f0e634cf", GitTreeState:"clean", BuildDate:"2019-12-07T21:20:10Z", GoVersion:"go1.13.4", Compiler:"gc", Platform:"darwin/amd64"}
+➜  /Users/liangshanguang/Downloads   minikube version
+minikube version: v1.4.0
+commit: b4e86486b6f529c2de808260556caa75ec6330cf
+➜  /Users/liangshanguang/Downloads   minikube start --registry-mirror=https://registry.docker-cn.com
+😄  minikube v1.4.0 on Darwin 10.13.6
+👍  Upgrading from Kubernetes 1.10.0 to 1.16.0
+✅  Using image repository registry.cn-hangzhou.aliyuncs.com/google_containers
+💿  Downloading VM boot image ...
+    > minikube-v1.4.0.iso.sha256: 65 B / 65 B [--------------] 100.00% ? p/s 0s
+    > minikube-v1.4.0.iso: 135.73 MiB / 135.73 MiB [-] 100.00% 2.44 MiB p/s 56s
+💡  Tip: Use 'minikube start -p <name>' to create a new cluster, or 'minikube delete' to delete this one.
+🔄  Retriable failure: Error getting state for host: machine does not exist
+🔥  Deleting "minikube" in virtualbox ...
+🔥  Creating virtualbox VM (CPUs=2, Memory=2000MB, Disk=20000MB) ...
+🐳  Preparing Kubernetes v1.16.0 on Docker 18.09.9 ...
+💾  Downloading kubelet v1.16.0
+💾  Downloading kubeadm v1.16.0
+🚜  拉取镜像 ...
+🔄  Relaunching Kubernetes using kubeadm ... 
+⌛  Waiting for: apiserver proxy etcd scheduler controller dns
+🏄  Done! kubectl is now configured to use "minikube"
+```
+
+![Mac上的Minikube安装](images/Mac上的Minikube安装.png)
+
 ### minukube使用
+
 + `minicube version`可以查看版本号
 + `minikube start`:启动minikube
 + `minikube ssh`:连接minikube虚拟机(运行在virtulbox中)
@@ -91,9 +164,11 @@ commit: b4e86486b6f529c2de808260556caa75ec6330cf
 🤔  Verifying proxy health ...
 🎉  Opening http://127.0.0.1:53162/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/ in your default browser...
 ```
+
 ![minikube启动的k8s的dashboard](images/minikube启动的k8s的dashboard.png)
 
 ### kubectl使用
+
 + `kubectl config`:查看k8s节点配置
 + `kubectl config view`:查看节点配置
 + `kubectl config get-contexts`:获取上下文信息
@@ -129,62 +204,6 @@ KubeDNS is running at https://192.168.99.100:8443/api/v1/namespaces/kube-system/
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ```
-
-## 9.2 Mac上的Minikube安装
-### 安装Kubectl
-
-## 安装virtualbox
-从百度网盘下载并安装，见**2.软件/1.代码开发/VirtualBox/virtualbox6012.dmg**
-
-### 安装kubectl
-下载地址： https://storage.googleapis.com/kubernetes-release/release/v1.17.0/bin/darwin/amd64/kubectl
-
-安装
-```shell
-chmod +x ./kubectl
-sudo mv ./kubectl /usr/local/bin/kubectl
-kubectl version --client
-```
-
-### 安装minikube
-```shell
-curl -Lo minikube http://kubernetes.oss-cn-hangzhou.aliyuncs.com/minikube/releases/v1.4.0/minikube-darwin-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-```
-
-### 启动minikube
-```shell
-minikube start --registry-mirror=https://registry.docker-cn.com
-```
-
-### 安装完后的样子如下：
-```shell
-➜  /Users/liangshanguang/Downloads   sudo mv ./kubectl /usr/local/bin/kubectl
-Password:
-➜  /Users/liangshanguang/Downloads   kubectl version --client
-Client Version: version.Info{Major:"1", Minor:"17", GitVersion:"v1.17.0", GitCommit:"70132b0f130acc0bed193d9ba59dd186f0e634cf", GitTreeState:"clean", BuildDate:"2019-12-07T21:20:10Z", GoVersion:"go1.13.4", Compiler:"gc", Platform:"darwin/amd64"}
-➜  /Users/liangshanguang/Downloads   minikube version
-minikube version: v1.4.0
-commit: b4e86486b6f529c2de808260556caa75ec6330cf
-➜  /Users/liangshanguang/Downloads   minikube start --registry-mirror=https://registry.docker-cn.com
-😄  minikube v1.4.0 on Darwin 10.13.6
-👍  Upgrading from Kubernetes 1.10.0 to 1.16.0
-✅  Using image repository registry.cn-hangzhou.aliyuncs.com/google_containers
-💿  Downloading VM boot image ...
-    > minikube-v1.4.0.iso.sha256: 65 B / 65 B [--------------] 100.00% ? p/s 0s
-    > minikube-v1.4.0.iso: 135.73 MiB / 135.73 MiB [-] 100.00% 2.44 MiB p/s 56s
-💡  Tip: Use 'minikube start -p <name>' to create a new cluster, or 'minikube delete' to delete this one.
-🔄  Retriable failure: Error getting state for host: machine does not exist
-🔥  Deleting "minikube" in virtualbox ...
-🔥  Creating virtualbox VM (CPUs=2, Memory=2000MB, Disk=20000MB) ...
-🐳  Preparing Kubernetes v1.16.0 on Docker 18.09.9 ...
-💾  Downloading kubelet v1.16.0
-💾  Downloading kubeadm v1.16.0
-🚜  拉取镜像 ...
-🔄  Relaunching Kubernetes using kubeadm ... 
-⌛  Waiting for: apiserver proxy etcd scheduler controller dns
-🏄  Done! kubectl is now configured to use "minikube"
-```
-![Mac上的Minikube安装](images/Mac上的Minikube安装.png)
 
 ## 9.3 K8S最小调度单元Pod
 
@@ -715,5 +734,9 @@ $ ip a
 ![访问expose的deploment服务](images/访问expose的deploment服务.png)
 
 ## 9.6 多节点集群，采用[kubeadm](https://github.com/kubernetes/kubeadm)
+
+> tectonic的sandbox现在好像已经不提供下载了
+
+
 
 ### 在cloud上安装k8s集群，用[kops](https://github.com/kubernetes/kops)
