@@ -304,6 +304,24 @@ etcd-0               Healthy   {"health":"true"}
 ### 5.4 安装flannel网络组件(master上执行)
 > 下载地址：https://github.com/coreos/flannel
 
+此步可能会执行地非常慢因为要从`quay.io`上拉取多个镜像，最好把`quay.io`改成`quay.azk8s.cn`下载**自己平台**上对应的`coreos/flannel`镜像，一共有以下5个平台s390x、ppc64le、arm64、arm、amd64，我们最常用地就是amd64了
+```shell
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-s390x       c5963b81ce28        12 months ago       58.2 MB
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-ppc64le     c96a2f3abc08        12 months ago       69.6 MB
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-arm64       32ffa9fadfd7        12 months ago       53.5 MB
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-arm         ef3b5d63729b        12 months ago       48.9 MB
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-amd64       ff281650a721        12 months ago       52.6 MB
+```
+
+以amd64平台为例，在`kubectl apply -f`之前先在master和所有node节点上先下载好flannel镜像，可以防止网络问题导致后面的一系列坑：
+
+```shell
+docker pull quay.azk8s.cn/coreos/flannel:v0.11.0-amd64
+docker tag quay.azk8s.cn/coreos/flannel:v0.11.0-amd64 quay.io/coreos/flannel:v0.11.0-amd64
+```
+
+然后`kubectl apply -f`即可
+
 ```shell
 [root@k8s-master ~]# kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 podsecuritypolicy.policy/psp.flannel.unprivileged created
@@ -316,15 +334,6 @@ daemonset.apps/kube-flannel-ds-arm64 created
 daemonset.apps/kube-flannel-ds-arm created
 daemonset.apps/kube-flannel-ds-ppc64le created
 daemonset.apps/kube-flannel-ds-s390x created
-```
-
-上面的步骤可能会执行地非常慢因为要`quay.io`上拉取多个镜像，如果嫌慢可以自己把`quay.io`改成`quay.azk8s.cn`下载**自己平台**上对应的`coreos/flannel`镜像，一共有以下5个平台s390x、ppc64le、arm64、arm、amd64，我们最常用地就是amd64了
-```shell
-quay.azk8s.cn/coreos/flannel                                      v0.11.0-s390x       c5963b81ce28        12 months ago       58.2 MB
-quay.azk8s.cn/coreos/flannel                                      v0.11.0-ppc64le     c96a2f3abc08        12 months ago       69.6 MB
-quay.azk8s.cn/coreos/flannel                                      v0.11.0-arm64       32ffa9fadfd7        12 months ago       53.5 MB
-quay.azk8s.cn/coreos/flannel                                      v0.11.0-arm         ef3b5d63729b        12 months ago       48.9 MB
-quay.azk8s.cn/coreos/flannel                                      v0.11.0-amd64       ff281650a721        12 months ago       52.6 MB
 ```
 
 比如`docker pull quay.io/coreos/flannel:v0.11.0-amd64`
@@ -416,6 +425,24 @@ NAME         STATUS     ROLES    AGE     VERSION
 k8s-master   Ready      master   67m     v1.17.3
 k8s-node01   NotReady   <none>   2m42s   v1.17.3
 k8s-node02   NotReady   <none>   2m28s   v1.17.3
+```
+
+上面两个node节点都是NotReady一般是需要手动在对应的node节点pull镜像`quay.io/coreos/flannel:v0.11.0-amd64`，`quay.io`在国外，非常慢，因此从国内镜像源下载并修改一下Tag就行，这一步最好放到`kubectl apply -f`之前，可以避免很多麻烦，命令如下：
+
+本例中即在`192.168.100.121(k8s-node1)`和`192.168.100.122(k8s-node2)`上都执行如下命令(随着k8s版本变化，这个镜像的版本可能也会变，后面部署时注意下~)
+```shell
+docker pull quay.azk8s.cn/coreos/flannel:v0.11.0-amd64
+docker tag quay.azk8s.cn/coreos/flannel:v0.11.0-amd64 quay.io/coreos/flannel:v0.11.0-amd64
+```
+
+然后再在master上查看节点状态，可以看到节点都ready了
+
+```shell
+[root@k8s-master etc]# kubectl get nodes
+NAME         STATUS   ROLES    AGE    VERSION
+k8s-master   Ready    master   128m   v1.17.3
+k8s-node01   Ready    <none>   63m    v1.17.3
+k8s-node02   Ready    <none>   63m    v1.17.3
 ```
 
 ## 7.配置
