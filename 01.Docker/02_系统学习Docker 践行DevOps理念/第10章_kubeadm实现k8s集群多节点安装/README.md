@@ -451,8 +451,10 @@ k8s-node02   Ready    <none>   63m    v1.17.3
 ```
 
 ## 7.部署kubernetes Dashboard
-> k8s在1.6以上的版本必须使用dashboard的2.0版本了~不能再用网上最多的1.10.x了~添加新的之前强删除之前的bashboard `kubectl delete ns kubernetes-dashboard`
 ### 7.1 修改配置文件的镜像源和访问方式
+这里部署dashboard v1.10.1版本。官方的2.0版本还没出Release版本
+从 https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml 把配置文件下载下来，如果发现该链接失效，请访问https://github.com/kubernetes/dashboard，然后查找最新的链接。
+
 
 由于yaml配置文件中指定镜像从google拉取，先下载yaml文件到本地，修改配置从阿里云仓库拉取镜像。即把`k8s.gcr.io`改成`registry.cn-hangzhou.aliyuncs.com/google_containers`
 
@@ -562,5 +564,9 @@ ca.crt:     1025 bytes
 namespace:  11 bytes
 ```
 
-### 7.
-把token 填入令牌输入框，会告知我们·
+记录保存token，使用令牌登录上面的dashboard即可
+
+## 7.DashBoard2.0的使用
+> k8s在1.6以上的版本必须使用dashboard的2.0版本了~不能再用网上最多的1.10.x了~添加新的之前强删除之前的bashboard `kubectl delete ns kubernetes-dashboard`
+
+
