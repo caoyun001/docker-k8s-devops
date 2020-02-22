@@ -318,4 +318,104 @@ daemonset.apps/kube-flannel-ds-ppc64le created
 daemonset.apps/kube-flannel-ds-s390x created
 ```
 
-查看当前master节点上kube-system名称空间里运行的所有pod状态：
+上面的步骤可能会执行地非常慢因为要`quay.io`上拉取多个镜像，如果嫌慢可以自己把`quay.io`改成`quay.azk8s.cn`下载**自己平台**上对应的`coreos/flannel`镜像，一共有以下5个平台s390x、ppc64le、arm64、arm、amd64，我们最常用地就是amd64了
+```shell
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-s390x       c5963b81ce28        12 months ago       58.2 MB
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-ppc64le     c96a2f3abc08        12 months ago       69.6 MB
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-arm64       32ffa9fadfd7        12 months ago       53.5 MB
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-arm         ef3b5d63729b        12 months ago       48.9 MB
+quay.azk8s.cn/coreos/flannel                                      v0.11.0-amd64       ff281650a721        12 months ago       52.6 MB
+```
+
+比如`docker pull quay.io/coreos/flannel:v0.11.0-amd64`
+
+可以改成
+
+`docker pull quay.azk8s.cn/coreos/flannel:v0.11.0-amd64 && docker tag quay.azk8s.cn/coreos/flannel:v0.11.0-amd64 quay.io/coreos/flannel:v0.11.0-amd64`
+
+然后再执行 `kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml`即可
+
+查看当前master节点上kube-system名称空间里运行的所有pod状态，都变成`1/1`表示启动成功了：
+```shell
+[root@k8s-master ~]# kubectl  get pods -n kube-system
+NAME                                 READY   STATUS    RESTARTS   AGE
+coredns-9d85f5447-lmqbg              1/1     Running   0          58m
+coredns-9d85f5447-nwk25              1/1     Running   0          58m
+etcd-k8s-master                      1/1     Running   0          58m
+kube-apiserver-k8s-master            1/1     Running   0          58m
+kube-controller-manager-k8s-master   1/1     Running   0          58m
+kube-flannel-ds-amd64-nd7ng          1/1     Running   0          43m
+kube-proxy-4jnzs                     1/1     Running   0          58m
+kube-scheduler-k8s-master            1/1     Running   0          58m
+```
+
+再查看节点信息，看到master的status这回变成ready状态，确认master节点已经可用了
+
+```shell
+[root@k8s-master ~]# kubectl get nodes
+NAME         STATUS   ROLES    AGE   VERSION
+k8s-master   Ready    master   59m   v1.17.3
+```
+
+## 6.加入node节点
+> 在k8s-node节点上执行5.2回显中最后给地加入master节点的命令，本例是192.168.100.121和192.168.100.122
+
+```shell
+kubeadm join 192.168.100.120:6443 --token k548mt.yribhfsi0wpm2oj7 \
+    --discovery-token-ca-cert-hash sha256:a8547093f50009de5b6849973c90218e0e816cfa1c32a21b7712f15665b2d30e
+```
+
+### 具体执行过程
+> node1上：
+```shell
+[root@k8s-node01 ~]# kubeadm join 192.168.100.120:6443 --token k548mt.yribhfsi0wpm2oj7 \
+>     --discovery-token-ca-cert-hash sha256:a8547093f50009de5b6849973c90218e0e816cfa1c32a21b7712f15665b2d30e
+W0222 21:03:13.981379   14151 join.go:346] [preflight] WARNING: JoinControlPane.controlPlane settings will be ignored when control-plane flag is not set.
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -oyaml'
+[kubelet-start] Downloading configuration for the kubelet from the "kubelet-config-1.17" ConfigMap in the kube-system namespace
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+```
+
+> node2上
+```shell
+[root@k8s-node02 ~]# kubeadm join 192.168.100.120:6443 --token k548mt.yribhfsi0wpm2oj7 \
+>     --discovery-token-ca-cert-hash sha256:a8547093f50009de5b6849973c90218e0e816cfa1c32a21b7712f15665b2d30e
+W0222 21:03:27.207064   14187 join.go:346] [preflight] WARNING: JoinControlPane.controlPlane settings will be ignored when control-plane flag is not set.
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -oyaml'
+[kubelet-start] Downloading configuration for the kubelet from the "kubelet-config-1.17" ConfigMap in the kube-system namespace
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+```
+
+### 上面node节点加入成功后，在master节点查看节点信息
+> 等到node节点全部ready后，整个k8s集群就真正可用了~~
+```shell
+[root@k8s-master ~]# kubectl get nodes
+NAME         STATUS     ROLES    AGE     VERSION
+k8s-master   Ready      master   67m     v1.17.3
+k8s-node01   NotReady   <none>   2m42s   v1.17.3
+k8s-node02   NotReady   <none>   2m28s   v1.17.3
+```
+
+## 7.配置
