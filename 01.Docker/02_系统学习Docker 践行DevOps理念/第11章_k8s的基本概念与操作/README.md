@@ -718,3 +718,6 @@ nginx-deployment-54f57cf6bf-tdpqf   1/1     Running   0          12s   10.244.1.
 NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES        SELECTOR
 nginx-deployment   4/4     4            4           45m   nginx        nginx:1.7.9   app=nginx
 ```
+
+## 11.9 Replicaset在Deployment中的作用
+略
