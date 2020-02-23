@@ -573,6 +573,148 @@ spec:
               containerPort: 8080 #对service暴露端口
 ```
 
-### deployment实战
+### deployment实战--创建
 > 相关yml文件见当前目录下的deployment文件夹
+```shell
+[root@k8s-master ~]# cd deployment/
+[root@k8s-master deployment]# ls
+nginx_deploymemt_scale.yml  nginx_deployment_update.yml  nginx_deployment.yml  README.md
+[root@k8s-master deployment]# kubectl apply -f nginx_deployment.yml // 创建deployment
+deployment.apps/nginx-deployment created
+[root@k8s-master deployment]# kubectl get pod // 查看pod信息，此时pod还没启动起来
+NAME                                READY   STATUS              RESTARTS   AGE
+nginx-deployment-54f57cf6bf-j7lqw   0/1     ContainerCreating   0          35s
+nginx-deployment-54f57cf6bf-jltkr   0/1     ContainerCreating   0          35s
+[root@k8s-master deployment]# kubectl get deployment // 查看deployment，此时deployment还没起起来
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   0/2     2            0           38s
+[root@k8s-master deployment]# kubectl get deployment 
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   2/2     2            2           82s
+[root@k8s-master deployment]# kubectl get pod // 查看pod信息，此时pod已经启动起来
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-54f57cf6bf-j7lqw   1/1     Running   0          84s
+nginx-deployment-54f57cf6bf-jltkr   1/1     Running   0          84s
+[root@k8s-master deployment]# kubectl get deployment -o wide // deployment的信息
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES        SELECTOR
+nginx-deployment   2/2     2            2           104s   nginx        nginx:1.7.9   app=nginx
+[root@k8s-master deployment]# kubectl describe deployment nginx-deployment // 查看deployment详情
+[root@k8s-master deployment]# kubectl get pod -o wide // 看看pod的详情
+NAME                                READY   STATUS    RESTARTS   AGE     IP           NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-j7lqw   1/1     Running   0          3m20s   10.244.2.7   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-jltkr   1/1     Running   0          3m20s   10.244.1.3   k8s-node01   <none>           <none>
+[root@k8s-master deployment]# kubectl delete pod nginx-deployment-54f57cf6bf-jltkr // 删除deployment中的一个pod
+pod "nginx-deployment-54f57cf6bf-jltkr" deleted
+[root@k8s-master deployment]# kubectl get pod -o wide // 可以看到k8s自动重建了一个nginx-deployment的pod
+NAME                                READY   STATUS    RESTARTS   AGE     IP           NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-j7lqw   1/1     Running   0          3m59s   10.244.2.7   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-tmqw8   1/1     Running   0          14s     10.244.1.4   k8s-node01   <none>           <none>
+```
 
+### deployment实战--更新/升级
+> 相关yml文件见当前目录下的deployment文件夹
+```shell
+[root@k8s-master deployment]# kubectl apply -f nginx_deployment_update.yml // apply既可以用于更新，又可以用于创建deployment
+nginx_deployment_update.yml  nginx_deployment.yml
+deployment.apps/nginx-deployment configured
+[root@k8s-master deployment]# kubectl get pod -o wide // 此时还更新好deployment
+NAME                                READY   STATUS              RESTARTS   AGE     IP           NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-j7lqw   1/1     Running             0          13m     10.244.2.7   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-tmqw8   1/1     Running             0          9m16s   10.244.1.4   k8s-node01   <none>           <none>
+nginx-deployment-9f46bb5-js2vt      0/1     ContainerCreating   0          4s      <none>       k8s-node02   <none>           <none>
+[root@k8s-master deployment]# kubectl get deployment -o wide // deployment已经更新了
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES      SELECTOR
+nginx-deployment   2/2     1            2           13m   nginx        nginx:1.8   app=nginx
+[root@k8s-master deployment]# kubectl get pod -o wide // 此时部分更新好deployment了
+NAME                                READY   STATUS              RESTARTS   AGE   IP           NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-tmqw8   1/1     Running             0          10m   10.244.1.4   k8s-node01   <none>           <none>
+nginx-deployment-9f46bb5-hdsg9      0/1     ContainerCreating   0          33s   <none>       k8s-node01   <none>           <none>
+nginx-deployment-9f46bb5-js2vt      1/1     Running             0          76s   10.244.2.8   k8s-node02   <none>           <none>
+[root@k8s-master deployment]# kubectl get pod -o wide // 此完全分更新好deployment了
+NAME                             READY   STATUS    RESTARTS   AGE   IP           NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-9f46bb5-hdsg9   1/1     Running   0          47s   10.244.1.5   k8s-node01   <none>           <none>
+nginx-deployment-9f46bb5-js2vt   1/1     Running   0          90s   10.244.2.8   k8s-node02   <none>           <none>
+[root@k8s-master deployment]# kubectl get deployment -o wide // deployment的images版本从1.7.9升级到1.8
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES      SELECTOR
+nginx-deployment   2/2     2            2           14m   nginx        nginx:1.8   app=nginx
+```
+
+### deployment实战--扩容/缩容
+> 相关yml文件见当前目录下的deployment文件夹
+```shell
+[root@k8s-master ~]# cd deployment/
+[root@k8s-master deployment]# kubectl apply -f nginx_deployment_scale.yml // 扩容
+deployment.apps/nginx-deployment configured
+[root@k8s-master deployment]# kubectl get pod -o wide // 扩容完毕
+NAME                             READY   STATUS    RESTARTS   AGE   IP           NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-9f46bb5-hdsg9   1/1     Running   0          11m   10.244.1.5   k8s-node01   <none>           <none>
+nginx-deployment-9f46bb5-js2vt   1/1     Running   0          11m   10.244.2.8   k8s-node02   <none>           <none>
+nginx-deployment-9f46bb5-wbr5n   1/1     Running   0          12s   10.244.2.9   k8s-node02   <none>           <none>
+nginx-deployment-9f46bb5-xlbj7   1/1     Running   0          12s   10.244.1.6   k8s-node01   <none>           <none>
+[root@k8s-master deployment]# kubectl apply -f nginx_deployment.yml // 缩容
+deployment.apps/nginx-deployment configured
+[root@k8s-master deployment]# kubectl get pod -o wide // 缩容中
+NAME                                READY   STATUS        RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-2rds9   1/1     Running       0          5s    10.244.2.10   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-7mplv   1/1     Running       0          4s    10.244.1.7    k8s-node01   <none>           <none>
+nginx-deployment-9f46bb5-js2vt      0/1     Terminating   0          12m   10.244.2.8    k8s-node02   <none>           <none>
+nginx-deployment-9f46bb5-wbr5n      0/1     Terminating   0          56s   10.244.2.9    k8s-node02   <none>           <none>
+[root@k8s-master deployment]# kubectl get pod -o wide // 缩容完毕
+NAME                                READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-2rds9   1/1     Running   0          10s   10.244.2.10   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-7mplv   1/1     Running   0          9s    10.244.1.7    k8s-node01   <none>           <none>
+```
+
+> 下面是使用命令进行扩缩容而不是使用yml文件重新apply
+
+```shell
+[root@k8s-master deployment]# kubectl get pod -o wide
+NAME                                READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-2rds9   1/1     Running   0          10s   10.244.2.10   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-7mplv   1/1     Running   0          9s    10.244.1.7    k8s-node01   <none>           <none>
+[root@k8s-master deployment]# clear
+[root@k8s-master deployment]# kubectl edit deployment nginx-deployment // 直接编辑yml文件，进行扩容(3-->4)
+deployment.apps/nginx-deployment edited
+[root@k8s-master deployment]# kubectl get deployment -o wide
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES        SELECTOR
+nginx-deployment   3/3     3            3           30m   nginx        nginx:1.7.9   app=nginx
+[root@k8s-master deployment]# kubectl scale deployment nginx-deployment --replicas=4 // 使用命令设置实例个数
+deployment.apps/nginx-deployment scaled
+[root@k8s-master deployment]# kubectl get deployment -o wide
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES        SELECTOR
+nginx-deployment   4/4     4            4           32m   nginx        nginx:1.7.9   app=nginx
+[root@k8s-master deployment]# kubectl edit deployment nginx-deployment // 编辑yml文件，修改image的版本
+deployment.apps/nginx-deployment edited
+[root@k8s-master deployment]# kubectl get deployment -o wide
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES      SELECTOR
+nginx-deployment   3/4     4            3           33m   nginx        nginx:1.8   app=nginx
+[root@k8s-master deployment]# kubectl get deployment -o wide
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES      SELECTOR
+nginx-deployment   4/4     4            4           33m   nginx        nginx:1.8   app=nginx
+[root@k8s-master deployment]# kubectl set image deployment nginx-deployment nginx=nginx:1.7.9 // 使用命令更新Image版本
+deployment.apps/nginx-deployment image updated
+[root@k8s-master deployment]# kubectl get pod -o wide
+NAME                                READY   STATUS        RESTARTS   AGE    IP            NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-2fr6l   1/1     Running       0          2s     10.244.1.13   k8s-node01   <none>           <none>
+nginx-deployment-54f57cf6bf-hzsxh   1/1     Running       0          4s     10.244.2.15   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-rthzk   1/1     Running       0          3s     10.244.2.16   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-tdpqf   1/1     Running       0          4s     10.244.1.12   k8s-node01   <none>           <none>
+nginx-deployment-9f46bb5-r7d8p      0/1     Terminating   0          7m8s   10.244.2.12   k8s-node02   <none>           <none>
+nginx-deployment-9f46bb5-wrm9l      0/1     Terminating   0          7m8s   10.244.1.9    k8s-node01   <none>           <none>
+[root@k8s-master deployment]# kubectl get pod -o wide
+NAME                                READY   STATUS        RESTARTS   AGE     IP            NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-2fr6l   1/1     Running       0          9s      10.244.1.13   k8s-node01   <none>           <none>
+nginx-deployment-54f57cf6bf-hzsxh   1/1     Running       0          11s     10.244.2.15   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-rthzk   1/1     Running       0          10s     10.244.2.16   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-tdpqf   1/1     Running       0          11s     10.244.1.12   k8s-node01   <none>           <none>
+nginx-deployment-9f46bb5-r7d8p      0/1     Terminating   0          7m15s   10.244.2.12   k8s-node02   <none>           <none>
+[root@k8s-master deployment]# kubectl get pod -o wide // 更新image版本成功
+NAME                                READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+nginx-deployment-54f57cf6bf-2fr6l   1/1     Running   0          10s   10.244.1.13   k8s-node01   <none>           <none>
+nginx-deployment-54f57cf6bf-hzsxh   1/1     Running   0          12s   10.244.2.15   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-rthzk   1/1     Running   0          11s   10.244.2.16   k8s-node02   <none>           <none>
+nginx-deployment-54f57cf6bf-tdpqf   1/1     Running   0          12s   10.244.1.12   k8s-node01   <none>           <none>
+[root@k8s-master deployment]# kubectl get deployment -o wide // 可以看到image版本从1.8变成1.7.9了
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES        SELECTOR
+nginx-deployment   4/4     4            4           45m   nginx        nginx:1.7.9   app=nginx
+```
