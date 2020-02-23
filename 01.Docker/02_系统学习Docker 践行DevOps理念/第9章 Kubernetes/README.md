@@ -868,3 +868,89 @@ service-test   ClusterIP   10.1.201.146   <none>        8080/TCP   5s
 <p>Hello from service-test-65cbbb5968-p2vdj</p>
 ```
 
+### 9.8.3 Service类型2：NodePort
+> NodePort类型会给k8s集群内的每个节点都对外网暴露相同端口，每个节点的ip+NodePort都可以访问到我们的Service
+#### 配置文件如下
+> 每个pod可以添加`metadata.labels.xxx=xxxx`来设置label，label常用于筛选Pod或者Service
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels: # 设置地label，可以通过label对pod进行筛选
+    app: nginx
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx
+    ports:
+    - name: nginx-port
+      containerPort: 80
+```
+
+#### 实战验证NodePort
+```shell
+[root@k8s-master services]# kubectl apply -f pod_nginx.yml // 创建pod
+pod/nginx-pod created
+[root@k8s-master services]# kubectl get svc // 查看已有的Service
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.1.0.1     <none>        443/TCP   25h
+[root@k8s-master services]# kubectl get pod // 可以看到nginx的Pod已经启动了
+NAME        READY   STATUS    RESTARTS   AGE
+nginx-pod   1/1     Running   0          12s
+[root@k8s-master services]# kubectl expose pod nginx-pod --type=NodePort // 把nginx的pod在k8s集群所有节点上对外映射
+service/nginx-pod exposed
+[root@k8s-master services]# kubectl get svc // 可以看到我们的service对外暴露了30567端口
+NAME         TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)        AGE
+kubernetes   ClusterIP   10.1.0.1      <none>        443/TCP        25h
+nginx-pod    NodePort    10.1.247.22   <none>        80:30567/TCP   13s
+[root@k8s-master services]# kubectl get svc -o wide 
+NAME         TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)        AGE   SELECTOR
+kubernetes   ClusterIP   10.1.0.1      <none>        443/TCP        25h   <none>
+nginx-pod    NodePort    10.1.247.22   <none>        80:30567/TCP   72s   app=nginx
+[root@k8s-master services]# kubectl get nodes -o wide // 可以查看到我们k8s的节点如下，所以http://192.168.100.120:30567/、http://192.168.100.121:30567/、http://192.168.100.122:30567/ 都可以访问到我们的服务
+NAME         STATUS   ROLES    AGE   VERSION   INTERNAL-IP       EXTERNAL-IP   OS-IMAGE                KERNEL-VERSION          CONTAINER-RUNTIME
+k8s-master   Ready    master   25h   v1.17.3   192.168.100.120   <none>        CentOS Linux 7 (Core)   3.10.0-693.el7.x86_64   docker://1.13.1
+k8s-node01   Ready    worker   24h   v1.17.3   192.168.100.121   <none>        CentOS Linux 7 (Core)   3.10.0-693.el7.x86_64   docker://1.13.1
+k8s-node02   Ready    worker   24h   v1.17.3   192.168.100.122   <none>        CentOS Linux 7 (Core)   3.10.0-693.el7.x86_64   docker://1.13.1
+```
+验证k8s的所有节点都可以访问我们的服务
+![NodePort例图1](images/NodePort例图1.png)
+![NodePort例图2](images/NodePort例图2.png)
+![NodePort例图3](images/NodePort例图3.png)
+
+上面是命令行的方式，下面通过`直接在yml文件配置的方式`创建NodePort，主要的添加如下两处：
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx   # 添加1：筛选label为app=nginx的pod进行Service创建，这个label是在之前的Pod创建时yml文件里配置的
+  type: NodePort # 添加2：服务类型
+  ports:
+  - port: 32333
+    nodePort: 32333 # 添加3：对外暴露的port，范围应在30000~32767之间
+    targetPort: nginx-port # 添加4：也是上面设置的pod_nginx.yml里面设置的nginx-port属性
+    protocol: TCP
+```
+
+命令实战如下：
+
+```shell
+[root@k8s-master services]# kubectl get pod --show-labels // 可以看到之前创建的pod的LABELS
+NAME        READY   STATUS    RESTARTS   AGE   LABELS
+nginx-pod   1/1     Running   0          19m   app=nginx
+[root@k8s-master services]# ls
+deployment_python_http.yml  pod_busybox.yml  pod_nginx.yml  service_nginx.yml
+[root@k8s-master services]# kubectl apply -f service_nginx.yml // 用我们上面的yml文件来创建Service
+service/nginx-service created
+[root@k8s-master services]# kubectl get service // 查看可以看到我们通过32333把服务服务在k8s所有节点上对外开放了，所以http://192.168.100.120:32333/、http://192.168.100.121:32333/、http://192.168.100.122:32333/ 都可以访问到我们的服务，见下面的图
+NAME            TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)           AGE
+kubernetes      ClusterIP   10.1.0.1      <none>        443/TCP           25h
+nginx-service   NodePort    10.1.43.163   <none>        32333:32333/TCP   16s
+```
+![NodePort例图4](images/NodePort例图4.png)
+![NodePort例图5](images/NodePort例图5.png)
+![NodePort例图6](images/NodePort例图6.png)

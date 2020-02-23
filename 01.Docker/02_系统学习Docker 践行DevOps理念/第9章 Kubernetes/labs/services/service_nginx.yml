@@ -5,9 +5,9 @@ metadata:
 spec:
   ports:
   - port: 32333
-    nodePort: 32333
+    nodePort: 32333 # 添加2：对外暴露的port
     targetPort: nginx-port
     protocol: TCP
   selector:
     app: nginx
-  type: NodePort
+  type: NodePort # 添加1：服务类型
