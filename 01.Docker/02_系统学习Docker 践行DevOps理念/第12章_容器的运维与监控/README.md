@@ -64,3 +64,17 @@ kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10
 + `--max=10`：pod最多个数
 
 通过参数来引入各个字段。
+
+## 12.4 k8s集群的Log采集和展示：ELK+Flunted
+> 生产环境下有成千上万的容器，如何有效的查看相应容器中的log呢？
+
++ Fluentd(log转发)
++ ElasticSearch(log Index)
++ Kibana(log可视化)
++ LogTrail(log UI查看)（插件）
+
+![ELK_Fluented_K8S日志采集](images/ELK_Fluented_K8S日志采集.png)
+
+见[labs/logging](labs/logging)里面的yml文件
+
+## 12.5 
