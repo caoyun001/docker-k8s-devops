@@ -77,4 +77,8 @@ kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10
 
 见[labs/logging](labs/logging)里面的yml文件
 
-## 12.5 
+## 12.5 k8s集群监控方案：[Prometheus](https://github.com/prometheus/prometheus)
+> https://www.cnblogs.com/linuxk/p/10582534.html
+
+博客放了一份在本地：[Kubernetes学习之路_Prometheus监控](Kubernetes学习之路_Prometheus监控.md)
+
