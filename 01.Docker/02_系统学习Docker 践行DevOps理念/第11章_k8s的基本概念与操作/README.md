@@ -376,3 +376,155 @@ pod "nginx-busybox" deleted
 [root@k8s-master pod]# kubectl get pod // 此时再看就找不到pod了
 No resources found in default namespace.
 ```
+
+## 11.5 命名空间namespace
+### 作用
++ namespace命名空间用于不同team，不同project之间的隔离
++ 在不同的命名空间中，各种资源的名字是相互独立的，比如可以具有相同名称的pod存在
+
+### 相关命令
++ `kubectl get namespace`:查看当前所有的命名空间
++ `kubectl create namespace demo`：创建名为deno的命名空间
++ `kubectl pod --namespace kube-system`:过滤获取命名空间kube-namespace下的所有pod
++ yaml配置文件中用`metadata.namespace`指定命令空间
+  ```yaml
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: nginx-busybox
+    namespace: demo # 指定名为demo的pod所属的命名空间
+  ``` 
+
+### 实战
+```shell
+[root@k8s-master ~]# kubectl get pod
+No resources found in default namespace.
+[root@k8s-master ~]# kubectl get nodes
+NAME         STATUS   ROLES    AGE   VERSION
+k8s-master   Ready    master   17h   v1.17.3
+k8s-node01   Ready    worker   16h   v1.17.3
+k8s-node02   Ready    worker   16h   v1.17.3
+[root@k8s-master ~]# cd namespace/
+[root@k8s-master namespace]# ls
+nginx_demo.yml  nginx.yml  README.md
+[root@k8s-master namespace]# pwd
+/root/namespace
+[root@k8s-master namespace]# cat nginx.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+[root@k8s-master namespace]# cat nginx_demo.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+[root@k8s-master namespace]# kubectl get namespaces // 查看所有的命名空间
+NAME              STATUS   AGE
+default           Active   17h
+kube-node-lease   Active   17h
+kube-public       Active   17h
+kube-system       Active   17h
+[root@k8s-master namespace]# kubectl get pod --namespace kube-system // 查询命名空间kube-system下的所有pod
+NAME                                    READY   STATUS    RESTARTS   AGE
+coredns-9d85f5447-lmqbg                 1/1     Running   0          17h
+coredns-9d85f5447-nwk25                 1/1     Running   0          17h
+etcd-k8s-master                         1/1     Running   0          17h
+kube-apiserver-k8s-master               1/1     Running   0          17h
+kube-controller-manager-k8s-master      1/1     Running   0          17h
+kube-flannel-ds-amd64-25hrp             1/1     Running   0          16h
+kube-flannel-ds-amd64-lx7n5             1/1     Running   0          16h
+kube-flannel-ds-amd64-nd7ng             1/1     Running   0          17h
+kube-proxy-4jnzs                        1/1     Running   0          17h
+kube-proxy-kfhdn                        1/1     Running   0          16h
+kube-proxy-trghs                        1/1     Running   1          16h
+kube-scheduler-k8s-master               1/1     Running   0          17h
+kubernetes-dashboard-68798cb565-pfzx8   1/1     Running   0          15h
+[root@k8s-master namespace]# kubectl create namespace demo // 创建名为demo的命名空间
+namespace/demo created
+[root@k8s-master namespace]# kubectl get namespaces // 查看所有的命名空间
+NAME              STATUS   AGE
+default           Active   17h
+demo              Active   4s
+kube-node-lease   Active   17h
+kube-public       Active   17h
+kube-system       Active   17h
+[root@k8s-master namespace]# kubectl apply -f nginx.yml // 创建pod时不指定命名空间默认创建在default命名空间里
+pod/nginx created
+[root@k8s-master namespace]# kubectl get pod // 获取default命名空间内的pod信息
+NAME    READY   STATUS    RESTARTS   AGE
+nginx   1/1     Running   0          11s
+[root@k8s-master namespace]# kubectl get pod -o wide // 获取default命名空间内的pod详细信息
+NAME    READY   STATUS    RESTARTS   AGE   IP           NODE         NOMINATED NODE   READINESS GATES
+nginx   1/1     Running   0          31s   10.244.2.5   k8s-node02   <none>           <none>
+[root@k8s-master namespace]# kubectl apply -f nginx_demo.yml // 在demo命名空间内创建nginx的pod
+pod/nginx created
+[root@k8s-master namespace]# kubectl get pod // 这个命名只查default命名空间内的pod
+NAME    READY   STATUS    RESTARTS   AGE
+nginx   1/1     Running   0          59s
+[root@k8s-master namespace]# kubectl get pod --namespace demo // 可以通过--namespace指定命名空间进行查询
+NAME    READY   STATUS    RESTARTS   AGE
+nginx   1/1     Running   0          29s
+[root@k8s-master namespace]# kubectl get pod --namespace demo -o wide // 查看demo命名空间内的详细信息
+NAME    READY   STATUS    RESTARTS   AGE   IP           NODE         NOMINATED NODE   READINESS GATES
+nginx   1/1     Running   0          39s   10.244.2.6   k8s-node02   <none>           <none>
+[root@k8s-master namespace]# kubectl get pod --all-namespaces // kubectl get pod默认只查看default命名空间内的pod，--all-namespaces可以查看所有命名空间
+NAMESPACE     NAME                                    READY   STATUS    RESTARTS   AGE
+default       nginx                                   1/1     Running   0          2m15s
+demo          nginx                                   1/1     Running   0          81s
+kube-system   coredns-9d85f5447-lmqbg                 1/1     Running   0          17h
+kube-system   coredns-9d85f5447-nwk25                 1/1     Running   0          17h
+kube-system   etcd-k8s-master                         1/1     Running   0          17h
+kube-system   kube-apiserver-k8s-master               1/1     Running   0          17h
+kube-system   kube-controller-manager-k8s-master      1/1     Running   0          17h
+kube-system   kube-flannel-ds-amd64-25hrp             1/1     Running   0          16h
+kube-system   kube-flannel-ds-amd64-lx7n5             1/1     Running   0          16h
+kube-system   kube-flannel-ds-amd64-nd7ng             1/1     Running   0          17h
+kube-system   kube-proxy-4jnzs                        1/1     Running   0          17h
+kube-system   kube-proxy-kfhdn                        1/1     Running   0          16h
+kube-system   kube-proxy-trghs                        1/1     Running   1          16h
+kube-system   kube-scheduler-k8s-master               1/1     Running   0          17h
+kube-system   kubernetes-dashboard-68798cb565-pfzx8   1/1     Running   0          15h
+```
+
+## 11.6 创建我们自己的context
+> `kubectl get pod`默认是返回default命名空间下的pod，为了修改默认的命名空间，我们可以设置context
+```shell
+[root@k8s-master ~]# kubectl config get-contexts // 查看所有的context
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin
+[root@k8s-master ~]# kubectl config view // 查看k8s的配置
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://192.168.100.120:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+[root@k8s-master ~]# kubectl config set-context demo --user=kubernetes-admin cluster=kubernetes --namespace=demo // 设置context
+```
