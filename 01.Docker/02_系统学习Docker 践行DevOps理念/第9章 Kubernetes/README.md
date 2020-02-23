@@ -751,3 +751,120 @@ k8s集群的客户端大体分为两类：apiserver客户端和应用程序（�
 
 CNI：容器网络接口（Container Network Interface），由CNCF(Cloud Native Computing Foundation)维护的项目，其由一系列的用于编写配置容器网络插件的规范和库接口组成，支持众多插件项目。
 
+## 9.8 Service
+> service的clusterip是k8s系统中的虚拟ip地址,只能在内部访问。如果需要在外部访问的话,可以通过NodePort或者LoadBalancer的方式
+### 9.8.1 不要直接使用和管理Pods，为什么
++ 当我们使用ReplicaSet或者ReplicationController做水平扩展scale的时候，Pods有可能会被terminated
++ 当我们使用Deployment的时候，当我们去更新Docker Image Version时，旧的的Pods会被Terminated，新的Pods会被创建
+
+为了解决上面的两个难点，我们引入了Service，Service分如下3中，本章后续的章节将逐一介绍
++ `kubectl expose`命令，给我们的pod创建一个service，供外界访问
++ Service有3种类型：ClusterIP(给pods生成一个固定的ip)、NodePort(绑定k8s节点的port)、LoadBalancer(云服务商提供)
++ 也可以用DNS，但是需要DNS的插件
+
+### 9.8.2 Service类型1：ClusterIP
+
+#### 9.8.2.1 Pod的ClusterIP
+> 可以固定pod的访问IP，当Pod重建后，Pod的IP会变，但是Service的IP是始终不变的~k8s集群内的所有机器都可以访问
+
+```shell
+[root@k8s-master ~]# kubectl get pod -o wide
+NAME        READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+nginx-pod   1/1     Running   0          49m   10.244.2.17   k8s-node02   <none>           <none>
+[root@k8s-master ~]# kubectl expose pod nginx-pod
+service/nginx-pod exposed
+[root@k8s-master ~]# kubectl get svc
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.1.0.1       <none>        443/TCP   21h
+nginx-pod    ClusterIP   10.1.253.173   <none>        80/TCP    25s
+[root@k8s-master ~]# curl 10.1.253.173 // master上能访问
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+[root@k8s-node02 ~]# curl 10.1.253.173 // node02上也能访问
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
+
+#### 9.8.2.2 deployment的ClusterIP：同一个Deployment内部的所有Pod所在的机器都可以访问这个ClusterIP
+> 文件见[labs/deployment/deployment_nginx.yml](labs/deployment/deployment_nginx.yml)
+
+```shell
+[root@k8s-master services]# kubectl apply -f deployment_python_http.yml
+deployment.apps/service-test created
+[root@k8s-master services]# kubectl get pod
+NAME                            READY   STATUS    RESTARTS   AGE
+nginx-pod                       1/1     Running   0          84m
+service-test-65cbbb5968-p2vdj   1/1     Running   0          11s
+service-test-65cbbb5968-rkqf4   1/1     Running   0          11s
+[root@k8s-master services]# kubectl get pod -o wide
+NAME                            READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+nginx-pod                       1/1     Running   0          84m   10.244.2.17   k8s-node02   <none>           <none>
+service-test-65cbbb5968-p2vdj   1/1     Running   0          21s   10.244.2.18   k8s-node02   <none>           <none>
+service-test-65cbbb5968-rkqf4   1/1     Running   0          21s   10.244.1.14   k8s-node01   <none>           <none>
+[root@k8s-master services]# curl 10.244.2.18:8080
+<p>Hello from service-test-65cbbb5968-p2vdj</p>
+[root@k8s-master services]# curl 10.244.1.14:8080
+<p>Hello from service-test-65cbbb5968-rkqf4</p>
+[root@k8s-master services]# kubectl get deployment
+NAME           READY   UP-TO-DATE   AVAILABLE   AGE
+service-test   2/2     2            2           12m
+[root@k8s-master services]# kubectl expose deployment service-test
+service/service-test exposed
+[root@k8s-master services]# kubectl get svc
+NAME           TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+kubernetes     ClusterIP   10.1.0.1       <none>        443/TCP    21h
+nginx-pod      ClusterIP   10.1.253.173   <none>        80/TCP     50m
+service-test   ClusterIP   10.1.201.146   <none>        8080/TCP   5s
+# 下面两个命令回显可以明显体现出ClusterIP的负载均衡作用~
+[root@k8s-master ~]# curl 10.1.201.146:8080
+<p>Hello from service-test-65cbbb5968-rkqf4</p>
+[root@k8s-master ~]# curl 10.1.201.146:8080
+<p>Hello from service-test-65cbbb5968-p2vdj</p>
+```
+
