@@ -126,10 +126,15 @@ k8s-node02   Ready    worker   13h   v1.17.3
 ```
 
 ## 11.3~11.4 k8s的最小调度单位pod
+> 相关yml文件见当前目录下的pod文件夹
 ### 基本概念
 + 一个或者一组应用容器，他们分享资源(比如volume)
 + 分享相同的命名空间(比如网络空间)的容器群
 + pod是k8s中的最小调度单位
+
+综述：Kubernetes 使用 Pod 来管理容器，每个 Pod 可以包含一个或多个紧密关联的容器。
+Pod是一组紧密关联的容器集合，它们共享 PID、IPC、Network 和 UTS namespace，是 Kubernetes 调度的基本单位。Pod 内的多个容器共享网络和文件系统，可以通过进程间通信和文件共享这种简单高效的方式组合完成服务
+
 ![pod的基本概念图示](images/pod的基本概念图示.png)
 
 ### 一个pod内如何定义多个容器以及容器间的互相访问
@@ -137,7 +142,7 @@ k8s-node02   Ready    worker   13h   v1.17.3
 
 ### pod的yml配置文件详解
 ```yaml
-apiVersion: v1        　　          #必选，版本号，例如v1,版本号必须可以用 kubectl api-versions 查询到 .
+apiVersion: v1        　　          #必选，版本号，例如v1,版本号必须可以用 kubectl api-versions 查询到。常用的有：alpha-开发版，beta-测试版，stable-稳定版
 kind: Pod       　　　　　　         #必选，Pod
 metadata:       　　　　　　         #必选，元数据
   name: string        　　          #必选，Pod名称
@@ -378,6 +383,7 @@ No resources found in default namespace.
 ```
 
 ## 11.5 命名空间namespace
+> 相关yml文件见当前目录下的namespace文件夹
 ### 作用
 + namespace命名空间用于不同team，不同project之间的隔离
 + 在不同的命名空间中，各种资源的名字是相互独立的，比如可以具有相同名称的pod存在
@@ -528,3 +534,45 @@ users:
     client-key-data: REDACTED
 [root@k8s-master ~]# kubectl config set-context demo --user=kubernetes-admin cluster=kubernetes --namespace=demo // 设置context
 ```
+
+## 11.7~11.8 Controller和Deployment
+> k8s是通过各种controller来管理pod的生命周期，但是直接操作pod来完成我们的业务诉求会比较麻烦，无法控制pod的声明周期(比如扩缩容、机器宕机都会严重影响pod可用性)。
+
+> 为了满足不同业务场景，k8s开发了Deployment、ReplicaSet、DaemonSet、StatefuleSet、Job 等多种 Controller来管理。我们首先学习最常用的 Deployment。
+
+![Controller在k8s集群中的位置](images/Controller在k8s集群中的位置.png)
+
+### Deployment的作用
++ 定义Deployment来创建Pod和ReplicaSet
++ 滚动升级和回滚应用
++ 扩容和缩容
++ 暂停和继续Deployment
+
+### deployment的yml配置文件举例
+```shell
+piVersion: extensions/v1beta1   
+kind: Deployment                 
+metadata:
+  name: string               #Deployment名称
+spec:
+  replicas: 3 #目标副本数量
+  strategy:
+    rollingUpdate:  
+      maxSurge: 1      #滚动升级时最大同时升级1个pod
+      maxUnavailable: 1 #滚动升级时最大允许不可用的pod个数
+  template:         
+    metadata:
+      labels:
+        app: string  #模板名称
+    sepc: #定义容器模板，该模板可以包含多个容器
+      containers:                                                                   
+        - name: string                                                           
+          image: string 
+          ports:
+            - name: http
+              containerPort: 8080 #对service暴露端口
+```
+
+### deployment实战
+> 相关yml文件见当前目录下的deployment文件夹
+
