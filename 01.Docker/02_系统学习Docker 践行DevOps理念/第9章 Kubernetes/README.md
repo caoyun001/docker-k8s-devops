@@ -753,6 +753,9 @@ CNI：容器网络接口（Container Network Interface），由CNCF(Cloud Native
 
 ## 9.8 Service
 > service的clusterip是k8s系统中的虚拟ip地址,只能在内部访问。如果需要在外部访问的话,可以通过NodePort或者LoadBalancer的方式
+
+参考博客[Kubernetes对象之Service](https://www.jianshu.com/p/c24fd0d132f6)，在当前目录已经放了一份MarkDown格式的了~~
+
 ### 9.8.1 不要直接使用和管理Pods，为什么
 + 当我们使用ReplicaSet或者ReplicationController做水平扩展scale的时候，Pods有可能会被terminated
 + 当我们使用Deployment的时候，当我们去更新Docker Image Version时，旧的的Pods会被Terminated，新的Pods会被创建
@@ -954,3 +957,13 @@ nginx-service   NodePort    10.1.43.163   <none>        32333:32333/TCP   16s
 ![NodePort例图4](images/NodePort例图4.png)
 ![NodePort例图5](images/NodePort例图5.png)
 ![NodePort例图6](images/NodePort例图6.png)
+
+#### Label常用于筛选Pod，很有用，k8s中有各种各样的Label，自己去学习下
+
+#### 生产环境中ClusterIP和NodePort一般都不用，最常用地是NodeBalancer和ExternalName
+
+### 9.8.3 Service类型3：NodeBalancer
+> NodeBalancer一般是在云服务中的k8s集群才能用，公有云中常用kops创建k8s集群
+
+
+
