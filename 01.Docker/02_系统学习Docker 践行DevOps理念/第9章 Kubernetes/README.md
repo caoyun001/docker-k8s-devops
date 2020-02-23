@@ -659,7 +659,95 @@ $ ip a
 
 ## 9.6 多节点集群，采用[kubeadm](https://github.com/kubernetes/kubeadm)
 
-> tectonic的sandbox现在好像已经不提供下载了
+> tectonic的sandbox现在好像已经不提供下载了，直接见第10章的k8s集群部署就行~
 
+## 9.7 k8s基础网络Cluster Network
+### 在集群内的任何一个节点上ping任何一个pod的ip都是可以ping通的
+```shell
+[root@k8s-master services]# kubectl apply -f pod_nginx.yml
+pod "nginx-pod" created
+[root@k8s-master services]# kubectl get pod
+NAME          READY   STATUS    RESTARTS   AGE
+busybox-pod   0/1     Pending   0          4m20s
+nginx-pod     1/1     Running   0          3m34s
+[root@k8s-master services]# kubectl get pod
+NAME        READY   STATUS    RESTARTS   AGE
+nginx-pod   1/1     Running   0          3m50s
+[root@k8s-master services]# kubectl get pod -o wide
+NAME        READY   STATUS    RESTARTS   AGE     IP                                               NODE     NOMINATED NODE   READINESS GATES
+nginx-pod   1/1     Running   0          6m11s   10.244.2.17 #这个ip在k8s的所有节点都可以ping通   k8s-node02   <none>           <none>
+[root@k8s-master services]# kubectl get nodes -o wide
+NAME         STATUS   ROLES    AGE   VERSION   INTERNAL-IP       EXTERNAL-IP   OS-IMAGE                KERNEL-VERSION          CONTAINER-RUNTIME
+k8s-master   Ready    master   20h   v1.17.3   192.168.100.120   <none>        CentOS Linux 7 (Core)   3.10.0-693.el7.x86_64   docker://1.13.1
+k8s-node01   Ready    worker   19h   v1.17.3   192.168.100.121   <none>        CentOS Linux 7 (Core)   3.10.0-693.el7.x86_64   docker://1.13.1
+k8s-node02   Ready    worker   19h   v1.17.3   192.168.100.122   <none>        CentOS Linux 7 (Core)   3.10.0-693.el7.x86_64   docker://1.13.1
+[root@k8s-master services]# ping 10.244.2.17 // 在master节点上ping自己创建的pod
+PING 10.244.2.17 (10.244.2.17) 56(84) bytes of data.
+64 bytes from 10.244.2.17: icmp_seq=1 ttl=63 time=0.278 ms
+64 bytes from 10.244.2.17: icmp_seq=2 ttl=63 time=0.248 ms
+^C
+--- 10.244.2.17 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1000ms
+rtt min/avg/max/mdev = 0.248/0.263/0.278/0.015 ms
 
-### 在cloud上安装k8s集群，用[kops](https://github.com/kubernetes/kops)
+[root@k8s-node01 ~]# ping 10.244.2.17 // 在node01节点上ping自己创建的pod
+PING 10.244.2.17 (10.244.2.17) 56(84) bytes of data.
+64 bytes from 10.244.2.17: icmp_seq=1 ttl=63 time=0.355 ms
+^C
+--- 10.244.2.17 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.355/0.355/0.355/0.000 ms
+
+[root@k8s-node02 ~]# ping 10.244.2.17 // 在node02节点上ping自己创建的pod
+PING 10.244.2.17 (10.244.2.17) 56(84) bytes of data.
+64 bytes from 10.244.2.17: icmp_seq=1 ttl=64 time=0.036 ms
+^C
+--- 10.244.2.17 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.036/0.036/0.036/0.000 ms
+```
+
+实现原理如下图：
+![k8s集群内的pod在集群内任何一台机器都可以ping通](images/k8s集群内的pod在集群内任何一台机器都可以ping通.png)
+可以看到`k8s集群内的pod在集群内任何一台机器都可以ping通`是通过flannel网络实现地
+
+### 原理解析：k8s的网络模型
+k8s对Pods之间如何进行组网通信提出了要求，k8s对集群的网络有以下要求，所有实现了下面3点要求的插件都可以对接k8s，比如上面用到的flannel：
+
++ 所有的Pods之间可以在不使用NAT网络地址转换的情况下相互通信(k8s集群内的pod的IP在集群内任何一台机器都可以ping通)
++ 所有的Nodes之间可以在不使用NAT网络地址转换的情况下相互通信(`kubectl get nodes -o wide`得到节点可以直接互相ping通)
++ 每个Pod自己看到的自己的ip和其他Pod看到的一致(`kubectl get pod -o wide`里面的`IP`字段是啥，k8s集群其他节点访问这个pod就用啥ip)
+
+### pod与service的网络异同
+
+#### 一、网络模型概述
+
+k8s的网络中主要存在四种类型的通信：同一pod内的容器间通信、各pod彼此之间的通信、pod与service间的通信、以及集群外部的流量同service之间的通信。
+
+k8s为pod和service资源对象分别使用了各自的专用网络，`pod网络由k8s的网络插件配置实现`，而`service的网络则由k8s集群予以指定`。
+
+k8s的网络模型需要借助于外部插件实现，它要求任何实现机制都必须满足以下需求：
+
++ 1、所有pod间均可不经NAT机制直接通信；
++ 2、所有节点均可不经NAT机制而直接与所有容器通信。
++ 3、容器自己使用的IP也是其他容器或节点直接看到的地址，即，所有pod对象都位于同一平面网络中，而且可以使用pod自身的地址直接通信。
+
+k8s使用的网络插件需要为每个pod配置至少一个特定的地址，即podIP(`kubectl get pod -o wide`里面的`IP`字段)。
+
+`podIP地址实际存在于某个网卡`（可以是虚拟设备）上，而`service地址却是一个虚拟IP地址`，没有任何网络接口配置此地址，它由kube-proxy借助iptables规则或ipvs规则重新定向到本地端口，再将其调度至后端pod对象。service的IP地址是集群提供服务的接口，也称为clusterIP。
+
+pod网络及其IP由k8s的网络插件负责配置和管理，具体使用的网络地址可在管理配置网络插件时指定，如10.96.0.0/16网络。而cluster网络和IP则是由k8s集群负责配置和管理，如10.96.0.0/12网络。
+
+总结起来，k8s集群至少应该包含三个网络，
++ 一个是各主机（master、node、etcd等）自身所属的网络，其地址配置于主机的网络接口，用于各主机之间的通信；
++ 第二个是k8s集群上专用于pod资源对象的网络，它是一个虚拟网络，用于为各pod对象设定IP地址等网络参数，其地址配置于pod中容器的网络接口之上。pod网络为各pod对象设定IP地址等网络参数，其地址配置于pod中容器的网络接口之上。pod网络需要借助kubenet插件或CNI插件实现，该插件独立部署于k8s集群之外，也可托关于k8s之上；
++ 第三个时专用于service资源对象的网络，它也是一个虚拟网络，用于为k8s集群之中的service配置IP地址，但此地址并不配置于任何主机或容器的网络接口之上，而是通过node之上的kube-proxy配置为iptables或ipvs规则，从而将发往此地址的所有流量调度至其后端的各pod对象之上。service网络再k8s集群创建时予以指定，而各service的地址则在用户创建service时予以动态配置。
+
+#### 二、集群上的网络通信
+
+k8s集群的客户端大体分为两类：apiserver客户端和应用程序（运行为pod中的容器）客户端。apiserver客户端通常包含人类用户和pod对象两种，它们通过apiserver访问k8s集群完成管理任务，应用程序客户端一般也包含人类用户和pod对象两种，它们的访问目标时pod上运行于容器中的应用程序提供的各种具体的服务，如redis或nginx等。不过，这些访问请求通常要经由service或ingress资源对象进行。另外，应用程序客户端的访问目标对象的操作要经由apiserver客户端创建和配置完成后才能进行。
+
+名词解释：
+
+CNI：容器网络接口（Container Network Interface），由CNCF(Cloud Native Computing Foundation)维护的项目，其由一系列的用于编写配置容器网络插件的规范和库接口组成，支持众多插件项目。
+
