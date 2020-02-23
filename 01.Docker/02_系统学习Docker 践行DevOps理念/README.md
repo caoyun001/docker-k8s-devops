@@ -58,14 +58,33 @@
   + 9-12 LoadBlancer类型Service以及AWS的DNS服务配置  (05:06)
   + 9-13 在亚马逊k8s集群上部署wordpress  (10:52)
 
-+ 第10章 容器的的运维和监控
++ 第10章 Kubernetes简介和安装（新）
+  + 10-1 Kubenetes简介 (12:01)
+  + 10-2 K8s安装的方法简介 (05:56)
+  + 10-3 在windows系统上安装使用minikube (16:40)
+  + 10-4 在Mac系统上安装使用minikube (17:07)
+  + 10-5 使用kubeadm搭建多节点K8S集群 (14:47)
+  + 10-6 Google云平台的k8s服务 (10:10)
+
++ 第11章 Kubernetes中的基本概念和操作（新）
+  + 11-1 kubectl的基本使用 (15:44)
+  + 11-2 k8s的节点和标签 (11:47)
+  + 11-3 k8s调度的最小单位pod(上) (11:27)
+  + 11-4 k8s调度的最小单位pod(下) (08:16)
+  + 11-5 Namespace命名空间 (07:10)
+  + 11-6 创建我们自己的context (06:00)
+  + 11-7 Controller和Deployment (07:59)
+  + 11-8 deployment的演示 (16:55)
+  + 11-9 Replicaset在Deployment更新中的作用 (12:10)
+
++ 第12章 容器的的运维和监控
   + 10-1 容器的基本监控  (12:46)
   + 10-2 k8s集群运行资源监控——Heapster+Grafana+InfluxDB  (11:51)
   + 10-3 根据资源占用自动横向伸缩  (10:49)
   + 10-4 k8s集群Log的采集和展示——ELK+Fluentd  (10:58)
   + 10-5 k8s集群监控方案Prometheus  (13:10)
 
-+ 第11章 Docker+DevOps实战——过程和工具
++ 第13章 Docker+DevOps实战——过程和工具
   + 11-1 本章简介  (07:45)
   + 11-2 搭建GitLab服务器  (07:21)
   + 11-3 搭建GitLab CI服务器和Pipeline演示  (14:21)
