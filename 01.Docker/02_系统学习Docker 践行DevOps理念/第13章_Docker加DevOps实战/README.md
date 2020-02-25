@@ -54,6 +54,30 @@ gitlabci的agent注册结果如下：
 
 ![gitlabci的agent注册结果](images/gitlabci的agent注册结果.png)
 
+
+.gitlab-ci.yml的内容
+
+```yml
+# These are the default stages. You don't need to explicitly define them. But you could define any stages you need.
+stages:
+  - build
+  - test
+  - deploy
+
+# This is the name of the job. You can choose it freely.
+maven_build:
+  # A job is always executed within a stage. If no stage is set, it defaults to 'test'
+  stage: test
+  # Since we require Maven for this job, we can restrict the job to runners with a certain tag. Of course, we need to configure a runner with the tag maven with a maven installation
+  tags:
+    - maven
+  # Here you can execute arbitrate terminal commands.
+  # If any of the commands returns a non zero exit code the job fails
+  script:
+    - echo "Building project with maven"
+    - mvn verify
+```
+
 运行过程如下：
 ![运行过程1](images/运行过程1.png)
 ![运行过程2](images/运行过程2.png)
