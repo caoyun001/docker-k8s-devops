@@ -2,6 +2,9 @@
 > 本章的目标如下：
 ![基于k8s的devops实战](images/基于k8s的devops实战.png)
 
++ [gitlabci官方教程1](https://gitlab.com/help/ci/README.md)
++ [gitlabci官方教程2](https://gitlab.com/help/ci/quick_start/README)
+
 ## 13.1 本章简介
 完全采用免费的工具实现上面的基于k8s的devops
 + gitlab代替github
