@@ -82,3 +82,133 @@ maven_build:
 ![运行过程1](images/运行过程1.png)
 ![运行过程2](images/运行过程2.png)
 ![运行过程3](images/运行过程3.png)
+
+## 13.6 使用Python项目延时CI/CD流程
+> 在13.4的基础上加了部署deploy环节
+
+```yml
+variables:
+  GIT_SSL_NO_VERIFY: "1"
+
+# 定义CI的阶段
+stages:
+  - test
+  - build
+  - deploy
+
+# 依赖安装
+pep8:
+  stage: test
+  image: python:2.7
+  script:
+    - pip install tox
+    - tox -e pep8
+  tags:
+    - python27
+
+# 单元测试1
+unittest-py27:
+  stage: test
+  image: python:2.7
+  script:
+    - pip install tox
+    - tox -e py27
+  tags:
+    - python27
+
+# 单元测试2
+unittest-py34:
+  stage: test
+  image: python:3.4
+  script:
+    - pip install tox
+    - tox -e py34
+  tags:
+    - python34
+
+# 单元测试3
+sphnix:
+  stage: test
+  image: python:2.7
+  script:
+    - pip install tox
+    - tox -e docs
+  tags:
+    - python27
+
+# 构建
+build:
+  stage: build
+  tags:
+    - shell
+  script:
+    - docker build -t skeleton .
+  only:
+    - master
+
+# 部署
+deploy:
+  stage: deploy
+  tags:
+    - shell
+  script:
+    - scripts/deploy.sh
+    - export
+  only:
+    - master
+```
+
+deploy.sh内容如下
+
+```shell
+#!/usr/bin/env bash
+
+docker ps -a | grep penxiao_skeleton | awk '{print$1}' | xargs docker stop
+docker ps -a | grep penxiao_skeleton | awk '{print$1}' | xargs docker rm
+docker run -d -p 80:5000 --name penxiao_skeleton skeleton
+```
+
+## 13.7 CI实现版本自动发布
+> 自动把build后的镜像推送到自己搭建的docker registry中
+
+下面是参考地`.gitlab-ci.yml`
+
+```yml
+default:
+  image: python:3.6
+
+# 定义阶段
+stages:
+  - lint
+  - test
+  - build
+
+# 检查
+lint:
+  stage: lint
+  script:
+    - python3 -m venv venv
+    - . venv/bin/activate
+    - pip install -r test-requirements.txt
+    - flake8 --exclude venv
+
+# 测试
+test:
+  stage: test
+  script:
+    - python3 -m venv venv
+    - . venv/bin/activate
+    - pip install -r test-requirements.txt
+    - python -m pytest
+
+# 构建、发布到dockerhub和部署
+build_and_deploy:
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: build
+  script:
+    - docker login -u $DOCKER_USER -p $DOCKER_PASS paultest123.azurecr.io
+    - docker build -t paultest123.azurecr.io/flask-demo .
+    - docker push paultest123.azurecr.io/flask-demo
+```
