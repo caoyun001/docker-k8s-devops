@@ -2,7 +2,6 @@
 ![k8s权威指南](k8s权威指南.png)
 
 ## 第1章 Kubernetes入门 1
-
 + 1.1 Kubernetes是什么 2
 + 1.2 为什么要用Kubernetes 5
 + 1.3 从一个简单的例子开始 6
@@ -18,182 +17,101 @@
   + 1.4.5 Replication Controller 28
   + 1.4.6 Deployment 31
   + 1.4.7 Horizontal Pod Autoscaler 34
-1.4.8 StatefulSet 36
-1.4.9 Service 37
-1.4.10 Job 45
-1.4.11 Volume 45
-1.4.12 Persistent Volume 49
-1.4.13 Namespace 51
-1.4.14 Annotation 52
-1.4.15 ConfigMap 53
-1.4.16 小结 54
-
-第2章 Kubernetes安装配置指南 55
-
-2.1 系统要求 56
-
-2.2 使用kubeadm工具快速安装Kubernetes集群 57
-
-2.2.1 安装kubeadm和相关工具 57
-
-2.2.2 kubeadm config 58
-
-2.2.3 下载Kubernetes的相关镜像 59
-
-2.2.4 运行kubeadm init命令安装Master 59
-
-2.2.5 安装Node，加入集群 61
-
-2.2.6 安装网络插件 62
-
-2.2.7 验证Kubernetes集群是否安装完成 63
-
-2.3 以二进制文件方式安装Kubernetes集群 64
-
-2.3.1 Master上的etcd、kube-apiserver、kube-controller-manager、kube-scheduler服务 66
-
-2.3.2 Node上的kubelet、kube-proxy服务 71
-
-2.4 Kubernetes集群的安全设置 73
-
-2.4.1 基于CA签名的双向数字证书认证方式 73
-
-2.4.2 基于HTTP Base或Token的简单认证方式 78
-
-2.5 Kubernetes集群的网络配置 80
-
-2.6 内网中的Kubernetes相关配置 80
-
-2.6.1 Docker Private Registry（私有Docker镜像库） 80
-
-2.6.2 kubelet配置 81
-
-2.7 Kubernetes的版本升级 81
-
-2.7.1 二进制升级 81
-
-2.7.2 使用kubeadm进行集群升级 82
-
-2.8 Kubernetes核心服务配置详解 84
-
-2.8.1 公共配置参数 84
-
-2.8.2 kube-apiserver启动参数 85
-
-2.8.3 kube-controller-manager启动参数 97
-
-2.8.4 kube-scheduler启动参数 107
-
-2.8.5 kubelet启动参数 113
-
-2.8.6 kube-proxy启动参数 128
-
-2.9 CRI（容器运行时接口）详解 132
-
-2.9.1 CRI概述 132
-
-2.9.2 CRI的主要组件 133
-
-2.9.3 Pod和容器的生命周期管理 133
-
-2.9.4 面向容器级别的设计思路 135
-
-2.9.5 尝试使用新的Docker-CRI来创建容器 136
-
-2.9.6 CRI的进展 137
-
-2.10 kubectl命令行工具用法详解 137
-
-2.10.1 kubectl用法概述 137
-
-2.10.2 kubectl子命令详解 139
-
-2.10.3 kubectl参数列表 142
-
-2.10.4 kubectl输出格式 143
-
-2.10.5 kubectl操作示例 145
-
-第3章 深入掌握Pod 149
-
-3.1 Pod定义详解 150
-
-3.2 Pod的基本用法 156
-
-3.3 静态Pod 161
-
-3.4 Pod容器共享Volume 162
-
-3.5 Pod的配置管理 165
-
-3.5.1 ConfigMap概述 165
-
-3.5.2 创建ConfigMap资源对象 165
-
-3.5.3 在Pod中使用ConfigMap 173
-
-3.5.4 使用ConfigMap的限制条件 179
-
-3.6 在容器内获取Pod信息（Downward API） 180
-
-3.6.1 环境变量方式：将Pod信息注入为环境变量 180
-
-3.6.2 环境变量方式：将容器资源信息注入为环境变量 182
-
-3.6.3 Volume挂载方式 184
-
-3.7 Pod生命周期和重启策略 186
-
-3.8 Pod健康检查和服务可用性检查 187
-
-3.9 玩转Pod调度 190
-
-3.9.1 Deployment或RC：全自动调度 193
-
-3.9.2 NodeSelector：定向调度 194
-
-3.9.3 NodeAffinity：Node亲和性调度 197
-
-3.9.4 PodAffinity：Pod亲和与互斥调度策略 198
-
-3.9.5 Taints和Tolerations（污点和容忍） 202
-
-3.9.6 Pod Priority Preemption：Pod优先级调度 206
-
-3.9.7 DaemonSet：在每个Node上都调度一个Pod 209
-
-3.9.8 Job：批处理调度 211
-
-3.9.9 Cronjob：定时任务 215
-
-3.9.10 自定义调度器 219
-
-3.10 Init Container（初始化容器） 220
-
-3.11 Pod的升级和回滚 224
-
-3.11.1 Deployment的升级 225
-
-3.11.2 Deployment的回滚 231
-
-3.11.3 暂停和恢复Deployment的部署操作，以完成复杂的修改 234
-
-3.11.4 使用kubectl rolling-update命令完成RC的滚动升级 236
-
-3.11.5 其他管理对象的更新策略 239
-
-3.12 Pod的扩缩容 240
-
-3.12.1 手动扩缩容机制 240
-
-3.12.2 自动扩缩容机制 241
-
-3.13 使用StatefulSet搭建MongoDB集群 264
-
-第4章 深入掌握Service 276
-
+  + 1.4.8 StatefulSet 36
+  + 1.4.9 Service 37
+  + 1.4.10 Job 45
+  + 1.4.11 Volume 45
+  + 1.4.12 Persistent Volume 49
+  + 1.4.13 Namespace 51
+  + 1.4.14 Annotation 52
+  + 1.4.15 ConfigMap 53
+  + 1.4.16 小结 54
+
+## 第2章 Kubernetes安装配置指南 55
++ 2.1 系统要求 56
++ 2.2 使用kubeadm工具快速安装Kubernetes集群 57
+  + 2.2.1 安装kubeadm和相关工具 57
+  + 2.2.2 kubeadm config 58
+  + 2.2.3 下载Kubernetes的相关镜像 59
+  + 2.2.4 运行kubeadm init命令安装Master 59
+  + 2.2.5 安装Node，加入集群 61
+  + 2.2.6 安装网络插件 62
+  + 2.2.7 验证Kubernetes集群是否安装完成 63
++ 2.3 以二进制文件方式安装Kubernetes集群 64
+  + 2.3.1 Master上的etcd、kube-apiserver、kube-controller-manager、kube-scheduler服务 66
+  + 2.3.2 Node上的kubelet、kube-proxy服务 71
++ 2.4 Kubernetes集群的安全设置 73
+  + 2.4.1 基于CA签名的双向数字证书认证方式 73
+  + 2.4.2 基于HTTP Base或Token的简单认证方式 78
++ 2.5 Kubernetes集群的网络配置 80
++ 2.6 内网中的Kubernetes相关配置 80
+  + 2.6.1 Docker Private Registry（私有Docker镜像库） 80
+  + 2.6.2 kubelet配置 81
++ 2.7 Kubernetes的版本升级 81
+  + 2.7.1 二进制升级 81
+  + 2.7.2 使用kubeadm进行集群升级 82
++ 2.8 Kubernetes核心服务配置详解 84
+  + 2.8.1 公共配置参数 84
+  + 2.8.2 kube-apiserver启动参数 85
+  + 2.8.3 kube-controller-manager启动参数 97
+  + 2.8.4 kube-scheduler启动参数 107
+  + 2.8.5 kubelet启动参数 113
+  + 2.8.6 kube-proxy启动参数 128
++ 2.9 CRI（容器运行时接口）详解 132
+  + 2.9.1 CRI概述 132
+  + 2.9.2 CRI的主要组件 133
+  + 2.9.3 Pod和容器的生命周期管理 133
+  + 2.9.4 面向容器级别的设计思路 135
+  + 2.9.5 尝试使用新的Docker-CRI来创建容器 136
+  + 2.9.6 CRI的进展 137
++ 2.10 kubectl命令行工具用法详解 137
+  + 2.10.1 kubectl用法概述 137
+  + 2.10.2 kubectl子命令详解 139
+  + 2.10.3 kubectl参数列表 142
+  + 2.10.4 kubectl输出格式 143
+  + 2.10.5 kubectl操作示例 145
+
+## 第3章 深入掌握Pod 149
++ 3.1 Pod定义详解 150
++ 3.2 Pod的基本用法 156
++ 3.3 静态Pod 161
++ 3.4 Pod容器共享Volume 162
++ 3.5 Pod的配置管理 165
+  + 3.5.1 ConfigMap概述 165
+  + 3.5.2 创建ConfigMap资源对象 165
+  + 3.5.3 在Pod中使用ConfigMap 173
+  + 3.5.4 使用ConfigMap的限制条件 179
++ 3.6 在容器内获取Pod信息（Downward API） 180
+  + 3.6.1 环境变量方式：将Pod信息注入为环境变量 180
+  + 3.6.2 环境变量方式：将容器资源信息注入为环境变量 182
+  + 3.6.3 Volume挂载方式 184
++ 3.7 Pod生命周期和重启策略 186
++ 3.8 Pod健康检查和服务可用性检查 187
++ 3.9 玩转Pod调度 190
+  + 3.9.1 Deployment或RC：全自动调度 193
+  + 3.9.2 NodeSelector：定向调度 194
+  + 3.9.3 NodeAffinity：Node亲和性调度 197
+  + 3.9.4 PodAffinity：Pod亲和与互斥调度策略 198
+  + 3.9.5 Taints和Tolerations（污点和容忍） 202
+  + 3.9.6 Pod Priority Preemption：Pod优先级调度 206
+  + 3.9.7 DaemonSet：在每个Node上都调度一个Pod 209
+  + 3.9.8 Job：批处理调度 211
+  + 3.9.9 Cronjob：定时任务 215
+  + 3.9.10 自定义调度器 219
++ 3.10 Init Container（初始化容器） 220
++ 3.11 Pod的升级和回滚 224
+  + 3.11.1 Deployment的升级 225
+  + 3.11.2 Deployment的回滚 231
+  + 3.11.3 暂停和恢复Deployment的部署操作，以完成复杂的修改 234
+  + 3.11.4 使用kubectl rolling-update命令完成RC的滚动升级 236
+  + 3.11.5 其他管理对象的更新策略 239
++ 3.12 Pod的扩缩容 240
+  + 3.12.1 手动扩缩容机制 240
+  + 3.12.2 自动扩缩容机制 241
++ 3.13 使用StatefulSet搭建MongoDB集群 264
+
+## 第4章 深入掌握Service 276
 4.1 Service定义详解 277
-
 4.2 Service的基本用法 279
 
 4.2.1 多端口Service 282
