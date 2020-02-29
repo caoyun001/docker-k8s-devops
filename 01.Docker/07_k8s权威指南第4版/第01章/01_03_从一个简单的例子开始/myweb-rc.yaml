@@ -13,7 +13,7 @@ spec:
     sepc:
       containers:
       - name: myweb
-        images: kubeguide/tomcat-app:v1
+        image: kubeguide/tomcat-app:v1
         ports:
         - containerPort: 8080
         env:
