@@ -1,4 +1,4 @@
-appVersion: v1
+apiVersion: v1
 kind: ReplicationController
 metadata:
   name: frontend
@@ -15,7 +15,7 @@ spec:
       containers:
       - name: tomcat-demo
         image: tomcat
-        imagePullPolicy: ifNotPresent
+        imagePullPolicy: IfNotPresent
         env:
         - name: GET_HOSTS_FROM
           value: dns
