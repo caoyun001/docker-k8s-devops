@@ -12,7 +12,9 @@ spec:
     spec:
       containers:
       - name: fluentd-cloud-logging
-        image: gcr.io/google_containers/fluentd-elasticsearch:1.17
+        # gcr.io国内无法访问，国内的https://hub.daocloud.io/ 比较好用
+        # image: gcr.io/google_containers/fluentd-elasticsearch:1.17
+        image: daocloud.io/daocloud/google_containers_fluentd-elasticsearch:1.22
         resources:
           limits:
             cpu: 100m
