@@ -4,7 +4,7 @@ metadata:
   name: nginx
   annotations:
 spec:
-  # 这些容器会在其他容器运行
+  # These containers are run during pod initialization
   initContainers:
   - name: install
     image: busybox
@@ -12,14 +12,14 @@ spec:
     - wget
     - "-O"
     - "/work-dir/index.html"
-    - https://www.baidu.com
+    - http://kubernetes.io
     volumeMounts:
     - name: workdir
       mountPath: "/work-dir"
   containers:
   - name: nginx
     image: nginx
-    ports: 
+    ports:
     - containerPort: 80
     volumeMounts:
     - name: workdir
@@ -27,4 +27,4 @@ spec:
   dnsPolicy: Default
   volumes:
   - name: workdir
-    emptyDir: {}
+    emptyDir: {} 
